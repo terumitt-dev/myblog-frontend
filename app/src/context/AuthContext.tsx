@@ -62,11 +62,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       try {
-        // モックAPI経由での認証
-        const response = await fetch("/api/auth/login", {
+        // Rails API経由での認証
+        const response = await fetch("http://localhost:3000/api/auth/sign_in", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ admin: { email, password } }),
+          credentials: "include",
         });
 
         if (!response.ok) {
@@ -76,10 +77,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         const data = await response.json();
 
-        // MSWハンドラーのレスポンス形式に合わせて処理
-        if (data.token && data.admin) {
+        // Rails APIのレスポンス形式に合わせて処理
+        if (data.status === "success" && data.data) {
+          // Authorization ヘッダーからJWTを取得
+          const authHeader = response.headers.get("Authorization");
+          const token = authHeader?.replace("Bearer ", "") || null;
+          
           setIsLoggedIn(true);
-          setToken(data.token);
+          setToken(token);
           console.log("✅ 開発環境: ログイン成功（メモリ管理）");
 
           return { success: true };
@@ -103,11 +108,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       // ログアウトAPI呼び出し（トークン付き）
       if (token) {
-        await fetch("/api/auth/logout", {
-          method: "POST",
+        await fetch("http://localhost:3000/api/auth/sign_out", {
+          method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
+          credentials: "include",
         });
       }
     } finally {

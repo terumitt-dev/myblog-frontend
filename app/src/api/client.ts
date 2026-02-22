@@ -3,7 +3,7 @@ import { useContext } from "react";
 import { AuthContext } from "@/context/AuthContext";
 
 // APIクライアント
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 export interface ApiResponse<T> {
   data?: T;
@@ -144,18 +144,18 @@ export const useAuthenticatedApi = () => {
 
     // 認証API
     authApi: {
-      login: (email: string, password: string) =>
-        apiCall<AuthLoginResponse>("/auth/login", {
+      signIn: (email: string, password: string) =>
+        apiCall<AuthLoginResponse>("/auth/sign_in", {
           method: "POST",
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ admin: { email, password } }),
         }),
 
-      logout: () =>
-        apiCall("/auth/logout", {
-          method: "POST",
+      signOut: () =>
+        apiCall("/auth/sign_out", {
+          method: "DELETE",
         }),
 
-      me: () => apiCall("/auth/me"),
+      currentUser: () => apiCall("/auth/current_user"),
     },
 
     // コメントAPI
