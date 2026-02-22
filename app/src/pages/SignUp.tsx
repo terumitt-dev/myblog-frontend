@@ -1,0 +1,159 @@
+// app/src/pages/SignUp.tsx
+import Layout from "@/components/layouts/Layout";
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import LoadingSpinner from "@/components/atoms/LoadingSpinner";
+import { cn } from "@/components/utils/cn";
+import { useAuthenticatedApi } from "@/api/client";
+
+const SignUp = () => {
+  const { login } = useAuth();
+  const api = useAuthenticatedApi();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async () => {
+    if (!email.trim() || !password.trim() || !passwordConfirmation.trim()) {
+      setError("全てのフィールドを入力してください。");
+      return;
+    }
+
+    if (password !== passwordConfirmation) {
+      setError("パスワードが一致しません。");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("パスワードは6文字以上である必要があります。");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      // サインアップ
+      const signUpResponse = await api.authApi.signUp(
+        email,
+        password,
+        passwordConfirmation,
+      );
+
+      if (!signUpResponse.data) {
+        setError("サインアップに失敗しました。");
+        return;
+      }
+
+      // サインアップ後、自動的にログイン
+      await login(email, password);
+      navigate("/admin");
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "サインアップに失敗しました。";
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleSubmit();
+  };
+
+  return (
+    <Layout>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 px-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-lg shadow-xl p-8">
+            <h1 className="text-3xl font-bold text-center text-gray-800 mb-2">
+              サインアップ
+            </h1>
+            <p className="text-center text-gray-600 mb-8">
+              新しいアカウントを作成してください
+            </p>
+
+            <form onSubmit={handleSignUp} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  メールアドレス
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@example.com"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  パスワード
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                  disabled={loading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  パスワード（確認）
+                </label>
+                <input
+                  type="password"
+                  value={passwordConfirmation}
+                  onChange={(e) => setPasswordConfirmation(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                  disabled={loading}
+                />
+              </div>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-700 text-sm">{error}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className={cn(
+                  "w-full py-2 px-4 rounded-lg font-semibold transition",
+                  loading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700 text-white",
+                )}
+              >
+                {loading ? <LoadingSpinner /> : "サインアップ"}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-gray-600">
+                既にアカウントをお持ちですか？{" "}
+                <Link to="/login" className="text-blue-600 hover:text-blue-700">
+                  ログイン
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default SignUp;

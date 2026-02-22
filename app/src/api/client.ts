@@ -144,6 +144,14 @@ export const useAuthenticatedApi = () => {
 
     // 認証API
     authApi: {
+      signUp: (email: string, password: string, passwordConfirmation: string) =>
+        apiCall<AuthLoginResponse>("/auth/sign_up", {
+          method: "POST",
+          body: JSON.stringify({
+            admin: { email, password, password_confirmation: passwordConfirmation },
+          }),
+        }),
+
       signIn: (email: string, password: string) =>
         apiCall<AuthLoginResponse>("/auth/sign_in", {
           method: "POST",
