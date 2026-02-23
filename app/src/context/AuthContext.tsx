@@ -1,6 +1,9 @@
 // app/src/context/AuthContext.tsx
 import { createContext, useState, useCallback } from "react";
 
+// APIベースURL（client.tsと統一）
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+
 // ⚠️ 重要：本番環境では絶対に使用しないでください
 // この実装は開発環境専用の簡易認証システムです
 
@@ -63,7 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       try {
         // Rails API経由での認証
-        const response = await fetch("http://localhost:3000/api/auth/sign_in", {
+        const response = await fetch(`${API_BASE}/auth/sign_in`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ admin: { email, password } }),
@@ -108,7 +111,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       // ログアウトAPI呼び出し（トークン付き）
       if (token) {
-        await fetch("http://localhost:3000/api/auth/sign_out", {
+        await fetch(`${API_BASE}/auth/sign_out`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,

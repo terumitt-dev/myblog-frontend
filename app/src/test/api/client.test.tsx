@@ -1,18 +1,23 @@
 // app/src/test/api/client.test.ts
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { renderHook } from "@testing-library/react";
+import { AuthProvider } from "@/context/AuthContext";
+import { useAuthenticatedApi } from "@/api/client";
 
 // fetch のモック
 const mockFetch = vi.fn();
 (globalThis as any).fetch = mockFetch;
 
-const API_BASE = "http://localhost:3000/api";
-
-describe("認証API", () => {
+describe("認証API (useAuthenticatedApi)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe("signUp", () => {
+  const wrapper = ({ children }: { children: React.ReactNode }) => {
+    return <AuthProvider>{children}</AuthProvider>;
+  };
+
+  describe("authApi.signUp", () => {
     it("正常なパラメータでサインアップリクエストを送信する", async () => {
       const mockResponse = {
         ok: true,
@@ -24,17 +29,12 @@ describe("認証API", () => {
 
       mockFetch.mockResolvedValueOnce(mockResponse);
 
-      await fetch(`${API_BASE}/auth/sign_up`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          admin: {
-            email: "test@example.com",
-            password: "password123",
-            password_confirmation: "password123",
-          },
-        }),
-      });
+      const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
+      await result.current.authApi.signUp(
+        "test@example.com",
+        "password123",
+        "password123",
+      );
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining("/auth/sign_up"),
@@ -56,17 +56,12 @@ describe("認証API", () => {
 
       mockFetch.mockResolvedValueOnce(mockResponse);
 
-      await fetch(`${API_BASE}/auth/sign_up`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          admin: {
-            email: "test@example.com",
-            password: "password123",
-            password_confirmation: "password123",
-          },
-        }),
-      });
+      const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
+      await result.current.authApi.signUp(
+        "test@example.com",
+        "password123",
+        "password123",
+      );
 
       const callArgs = mockFetch.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
@@ -75,7 +70,7 @@ describe("認証API", () => {
     });
   });
 
-  describe("signIn", () => {
+  describe("authApi.signIn", () => {
     it("正常なパラメータでログインリクエストを送信する", async () => {
       const mockResponse = {
         ok: true,
@@ -87,13 +82,8 @@ describe("認証API", () => {
 
       mockFetch.mockResolvedValueOnce(mockResponse);
 
-      await fetch(`${API_BASE}/auth/sign_in`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          admin: { email: "test@example.com", password: "password123" },
-        }),
-      });
+      const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
+      await result.current.authApi.signIn("test@example.com", "password123");
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining("/auth/sign_in"),
@@ -111,13 +101,8 @@ describe("認証API", () => {
 
       mockFetch.mockResolvedValueOnce(mockResponse);
 
-      await fetch(`${API_BASE}/auth/sign_in`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          admin: { email: "test@example.com", password: "password123" },
-        }),
-      });
+      const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
+      await result.current.authApi.signIn("test@example.com", "password123");
 
       const callArgs = mockFetch.mock.calls[0];
       const body = JSON.parse(callArgs[1].body);
@@ -127,7 +112,7 @@ describe("認証API", () => {
     });
   });
 
-  describe("signOut", () => {
+  describe("authApi.signOut", () => {
     it("ログアウトリクエストを DELETE メソッドで送信する", async () => {
       const mockResponse = {
         ok: true,
@@ -136,10 +121,8 @@ describe("認証API", () => {
 
       mockFetch.mockResolvedValueOnce(mockResponse);
 
-      await fetch(`${API_BASE}/auth/sign_out`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-      });
+      const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
+      await result.current.authApi.signOut();
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining("/auth/sign_out"),
@@ -150,7 +133,7 @@ describe("認証API", () => {
     });
   });
 
-  describe("currentUser", () => {
+  describe("authApi.currentUser", () => {
     it("現在のユーザー情報を取得する", async () => {
       const mockResponse = {
         ok: true,
@@ -162,10 +145,8 @@ describe("認証API", () => {
 
       mockFetch.mockResolvedValueOnce(mockResponse);
 
-      await fetch(`${API_BASE}/auth/current_user`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
+      const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
+      await result.current.authApi.currentUser();
 
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining("/auth/current_user"),
