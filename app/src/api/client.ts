@@ -39,6 +39,13 @@ interface AuthLoginResponse {
   token: string;
 }
 
+// レスポンスボディが存在するか判定する
+const hasJsonBody = (response: Response): boolean => {
+  if (response.status === 204) return false;
+  const contentType = response.headers.get("Content-Type");
+  return contentType !== null && contentType.includes("application/json");
+};
+
 // 認証付きfetch関数を作成するためのファクトリ関数
 const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
   return async function apiCall<T>(
@@ -78,6 +85,14 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         headers,
         credentials: 'include',
       });
+
+      // 204 No Content や空ボディの場合は json() を呼ばない
+      if (!hasJsonBody(response)) {
+        if (!response.ok) {
+          return { error: "API Error" };
+        }
+        return { data: undefined };
+      }
 
       const data = await response.json();
 

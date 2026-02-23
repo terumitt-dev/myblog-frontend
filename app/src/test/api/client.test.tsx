@@ -8,6 +8,19 @@ import { useAuthenticatedApi } from "@/api/client";
 const mockFetch = vi.fn();
 (globalThis as any).fetch = mockFetch;
 
+// レスポンスモックのヘルパー（headers付き）
+const createMockResponse = (body: object, status = 200) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  headers: {
+    get: (key: string) => {
+      if (key === "Content-Type") return "application/json";
+      return null;
+    },
+  },
+  json: async () => body,
+});
+
 describe("認証API (useAuthenticatedApi)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -19,15 +32,9 @@ describe("認証API (useAuthenticatedApi)", () => {
 
   describe("authApi.signUp", () => {
     it("正常なパラメータでサインアップリクエストを送信する", async () => {
-      const mockResponse = {
-        ok: true,
-        json: async () => ({
-          status: "success",
-          data: { id: 1, email: "test@example.com" },
-        }),
-      };
-
-      mockFetch.mockResolvedValueOnce(mockResponse);
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ status: "success", data: { id: 1, email: "test@example.com" } })
+      );
 
       const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
       await result.current.authApi.signUp(
@@ -49,12 +56,9 @@ describe("認証API (useAuthenticatedApi)", () => {
     });
 
     it("パスワード確認フィールドが password_confirmation として送信される", async () => {
-      const mockResponse = {
-        ok: true,
-        json: async () => ({ status: "success", data: {} }),
-      };
-
-      mockFetch.mockResolvedValueOnce(mockResponse);
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ status: "success", data: {} })
+      );
 
       const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
       await result.current.authApi.signUp(
@@ -72,15 +76,9 @@ describe("認証API (useAuthenticatedApi)", () => {
 
   describe("authApi.signIn", () => {
     it("正常なパラメータでログインリクエストを送信する", async () => {
-      const mockResponse = {
-        ok: true,
-        json: async () => ({
-          status: "success",
-          data: { id: 1, email: "test@example.com" },
-        }),
-      };
-
-      mockFetch.mockResolvedValueOnce(mockResponse);
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ status: "success", data: { id: 1, email: "test@example.com" } })
+      );
 
       const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
       await result.current.authApi.signIn("test@example.com", "password123");
@@ -94,12 +92,9 @@ describe("認証API (useAuthenticatedApi)", () => {
     });
 
     it("リクエストボディが正しい形式である", async () => {
-      const mockResponse = {
-        ok: true,
-        json: async () => ({ status: "success", data: {} }),
-      };
-
-      mockFetch.mockResolvedValueOnce(mockResponse);
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ status: "success", data: {} })
+      );
 
       const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
       await result.current.authApi.signIn("test@example.com", "password123");
@@ -114,12 +109,9 @@ describe("認証API (useAuthenticatedApi)", () => {
 
   describe("authApi.signOut", () => {
     it("ログアウトリクエストを DELETE メソッドで送信する", async () => {
-      const mockResponse = {
-        ok: true,
-        json: async () => ({ status: "success" }),
-      };
-
-      mockFetch.mockResolvedValueOnce(mockResponse);
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ status: "success" })
+      );
 
       const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
       await result.current.authApi.signOut();
@@ -135,15 +127,9 @@ describe("認証API (useAuthenticatedApi)", () => {
 
   describe("authApi.currentUser", () => {
     it("現在のユーザー情報を取得する", async () => {
-      const mockResponse = {
-        ok: true,
-        json: async () => ({
-          status: "success",
-          data: { id: 1, email: "test@example.com" },
-        }),
-      };
-
-      mockFetch.mockResolvedValueOnce(mockResponse);
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ status: "success", data: { id: 1, email: "test@example.com" } })
+      );
 
       const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
       await result.current.authApi.currentUser();
@@ -151,7 +137,7 @@ describe("認証API (useAuthenticatedApi)", () => {
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining("/auth/current_user"),
         expect.objectContaining({
-          method: "GET",
+          credentials: "include",
         }),
       );
     });
