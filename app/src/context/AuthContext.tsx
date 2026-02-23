@@ -13,7 +13,8 @@ type LoginResult = {
     | "network_error"
     | "invalid_credentials"
     | "production_disabled"
-    | "development_only";
+    | "development_only"
+    | "token_missing";
 };
 
 type AuthContextType = {
@@ -85,6 +86,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Authorization ヘッダーからJWTを取得
           const authHeader = response.headers.get("Authorization");
           const token = authHeader?.replace("Bearer ", "") || null;
+          
+          if (!token) {
+            console.error("🔒 開発環境: JWTトークンが取得できませんでした");
+            return { success: false, error: "token_missing" };
+          }
           
           setIsLoggedIn(true);
           setToken(token);

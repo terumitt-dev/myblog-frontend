@@ -45,12 +45,17 @@ const SignUp = () => {
       );
 
       if (!signUpResponse.data) {
-        setError("サインアップに失敗しました。");
+        setError(signUpResponse.error || "サインアップに失敗しました。");
         return;
       }
 
       // サインアップ後、自動的にログイン
-      await login(email, password);
+      const loginResult = await login(email, password);
+      if (!loginResult.success) {
+        setError("サインアップは成功しましたが、ログインに失敗しました。");
+        return;
+      }
+      
       navigate("/admin");
     } catch (error: unknown) {
       const errorMessage =
