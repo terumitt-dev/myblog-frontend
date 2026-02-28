@@ -137,7 +137,9 @@ describe("認証API (useAuthenticatedApi)", () => {
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining("/auth/current_user"),
         expect.objectContaining({
-          credentials: "include",
+          headers: expect.objectContaining({
+            "Content-Type": "application/json",
+          }),
         }),
       );
     });
