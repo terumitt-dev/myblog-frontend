@@ -71,7 +71,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ admin: { email, password } }),
-          credentials: "include",
         });
 
         if (!response.ok) {
@@ -123,7 +122,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          credentials: "include",
         });
       }
     } finally {

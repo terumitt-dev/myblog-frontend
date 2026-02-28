@@ -1,14 +1,12 @@
 // app/src/pages/SignUp.tsx
 import Layout from "@/components/layouts/Layout";
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { useAuthenticatedApi } from "@/api/client";
 import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import { cn } from "@/components/utils/cn";
-import { useAuthenticatedApi } from "@/api/client";
 
 const SignUp = () => {
-  const { login } = useAuth();
   const api = useAuthenticatedApi();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,14 +47,9 @@ const SignUp = () => {
         return;
       }
 
-      // サインアップ後、自動的にログイン
-      const loginResult = await login(email, password);
-      if (!loginResult.success) {
-        setError("サインアップは成功しましたが、ログインに失敗しました。");
-        return;
-      }
-      
-      navigate("/admin");
+      // サインアップ成功後、ログインページへリダイレクト
+      // （sign_upではJWT発行しない設計のため、明示的にログインが必要）
+      navigate("/login");
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "サインアップに失敗しました。";

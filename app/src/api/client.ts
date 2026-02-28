@@ -83,7 +83,6 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       const response = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
         headers,
-        credentials: 'include',
       });
 
       // 204 No Content や空ボディの場合は json() を呼ばない
@@ -94,7 +93,13 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         return { data: undefined };
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        console.error("JSON Parse Error:", e);
+        return { error: "Invalid JSON response" };
+      }
 
       if (!response.ok) {
         return { error: data.message || "API Error" };
