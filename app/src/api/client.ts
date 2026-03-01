@@ -6,11 +6,10 @@ import { AuthContext } from "@/context/AuthContext";
 // 本番環境では必ずVITE_API_BASE_URLを設定すること
 export const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
-export interface ApiResponse<T> {
-  data?: T;
-  error?: string;
-  message?: string;
-}
+// 成功時の型とエラー時の型を明確に分離
+export type ApiResponse<T> = 
+  | { data: T; error?: never }
+  | { data?: never; error: string };
 
 interface BlogCreateData {
   title: string;
@@ -35,9 +34,11 @@ interface AdminData {
   name: string;
 }
 
+// JWTはAuthorizationヘッダーから取得するため、レスポンスボディにtokenは含まれない
 interface AuthLoginResponse {
-  admin: AdminData;
-  token: string;
+  status: string;
+  message: string;
+  data: AdminData;
 }
 
 // レスポンスボディが存在するか判定する
@@ -94,7 +95,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           };
         }
         // 成功時の空レスポンス（204など）
-        return { data: undefined };
+        return { data: {} as T };
       }
 
       let data;
