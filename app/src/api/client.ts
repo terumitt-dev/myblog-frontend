@@ -24,11 +24,11 @@ const getApiBase = (): string => {
 export const API_BASE = getApiBase();
 
 // 成功時の型とエラー時の型を明確に分離
-// 204 No Contentなど空レスポンスの場合はnullを返す
+// ok プロパティで成功/失敗を明確に判別可能
 export type ApiResponse<T> = 
-  | { data: T; error?: never }
-  | { data: null; error?: never }  // 空レスポンス（204など）
-  | { data?: never; error: string };
+  | { ok: true; data: T; error?: never }
+  | { ok: true; data: null; error?: never }  // 空レスポンス（204など）
+  | { ok: false; data?: never; error: string };
 
 interface BlogCreateData {
   title: string;
@@ -61,10 +61,19 @@ interface AuthLoginResponse {
 }
 
 // レスポンスボディが存在するか判定する
+// 204 No Content は常にボディなし
+// それ以外はContent-Typeをチェック（ただしエラー時はボディがある前提）
 const hasJsonBody = (response: Response): boolean => {
   if (response.status === 204) return false;
+  
   const contentType = response.headers.get("Content-Type");
-  return contentType !== null && contentType.includes("application/json");
+  if (contentType && contentType.includes("application/json")) {
+    return true;
+  }
+  
+  // Content-Typeが不正でもエラーレスポンスならボディがある可能性が高い
+  // 安全のためJSONパース試行を許可
+  return !response.ok;
 };
 
 // 認証付きfetch関数を作成するためのファクトリ関数
@@ -110,11 +119,12 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       if (!hasJsonBody(response)) {
         if (!response.ok) {
           return { 
+            ok: false,
             error: `API Error: ${response.status} ${response.statusText}` 
           };
         }
         // 成功時の空レスポンス（204など）
-        return { data: null };
+        return { ok: true, data: null };
       }
 
       let data;
@@ -124,22 +134,23 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         console.error("JSON Parse Error:", e);
         if (!response.ok) {
           return { 
+            ok: false,
             error: `API Error: ${response.status} ${response.statusText}` 
           };
         }
-        return { error: "Invalid JSON response" };
+        return { ok: false, error: "Invalid JSON response" };
       }
 
       if (!response.ok) {
         // エラーレスポンスからメッセージを抽出
         const errorMessage = data?.message || data?.error || "API Error";
-        return { error: errorMessage };
+        return { ok: false, error: errorMessage };
       }
 
-      return { data };
+      return { ok: true, data };
     } catch (error) {
       console.error("API Error:", error);
-      return { error: "Network Error" };
+      return { ok: false, error: "Network Error" };
     }
   };
 };
