@@ -171,6 +171,10 @@ const Admin = () => {
           throw new Error(response.error);
         }
 
+        if (!response.data) {
+          throw new Error("更新レスポンスが空です");
+        }
+
         const updatedBlog = normalizeBlogResponse(response.data);
 
         // フロントエンドの状態を更新
@@ -200,6 +204,10 @@ const Admin = () => {
 
         if (!response.ok) {
           throw new Error(response.error);
+        }
+
+        if (!response.data) {
+          throw new Error("作成レスポンスが空です");
         }
 
         // APIレスポンスの正しいBlogオブジェクトを使用
