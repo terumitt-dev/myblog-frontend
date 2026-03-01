@@ -35,11 +35,16 @@ const SignUp = () => {
     setError("");
 
     try {
+      // 入力を正規化（先頭末尾スペースを除去）
+      const normalizedEmail = email.trim();
+      const normalizedPassword = password.trim();
+      const normalizedPasswordConfirmation = passwordConfirmation.trim();
+
       // サインアップ
       const signUpResponse = await api.authApi.signUp(
-        email,
-        password,
-        passwordConfirmation,
+        normalizedEmail,
+        normalizedPassword,
+        normalizedPasswordConfirmation,
       );
 
       if (!signUpResponse.ok) {
@@ -61,7 +66,7 @@ const SignUp = () => {
 
   const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
-    handleSubmit();
+    void handleSubmit();
   };
 
   return (
