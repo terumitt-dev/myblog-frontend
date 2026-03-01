@@ -16,7 +16,8 @@ const SignUp = () => {
   const navigate = useNavigate();
 
   const handleSubmit = async () => {
-    if (!email.trim() || !password.trim() || !passwordConfirmation.trim()) {
+    // メールは空白除去、パスワードは意図的なスペースを許容
+    if (!email.trim() || !password || !passwordConfirmation) {
       setError("全てのフィールドを入力してください。");
       return;
     }
