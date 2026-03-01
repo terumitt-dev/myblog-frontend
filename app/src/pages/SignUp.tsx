@@ -42,7 +42,7 @@ const SignUp = () => {
         passwordConfirmation,
       );
 
-      if (!signUpResponse.data) {
+      if (!signUpResponse.ok) {
         setError(signUpResponse.error || "サインアップに失敗しました。");
         return;
       }

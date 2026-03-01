@@ -46,7 +46,7 @@ const Admin = () => {
   const loadPosts = useCallback(async () => {
     try {
       const response = await blogsApi.getAll({ limit: 100 });
-      if (response.error) {
+      if (!response.ok) {
         throw new Error(response.error);
       }
 
@@ -167,7 +167,7 @@ const Admin = () => {
         // 認証付きAPIクライアントで更新
         const response = await blogsApi.update(editingPostId, updateData);
 
-        if (response.error) {
+        if (!response.ok) {
           throw new Error(response.error);
         }
 
@@ -198,7 +198,7 @@ const Admin = () => {
         // 認証付きAPIクライアントで投稿
         const response = await blogsApi.create(newPostData);
 
-        if (response.error) {
+        if (!response.ok) {
           throw new Error(response.error);
         }
 
@@ -239,7 +239,7 @@ const Admin = () => {
       // 認証付きAPIクライアントで削除
       const response = await blogsApi.delete(id);
 
-      if (response.error) {
+      if (!response.ok) {
         throw new Error(response.error);
       }
 
