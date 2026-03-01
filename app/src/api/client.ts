@@ -141,7 +141,8 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
             error: `API Error: ${response.status} ${response.statusText}` 
           };
         }
-        return { ok: false, error: "Invalid JSON response" };
+        // 成功時のJSONパース失敗は空レスポンス扱い
+        return { ok: true, data: null };
       }
 
       if (!response.ok) {
