@@ -1,7 +1,7 @@
 // app/src/pages/SignUp.tsx
 import Layout from "@/components/layouts/Layout";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuthenticatedApi } from "@/api/client";
 import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import { cn } from "@/components/utils/cn";

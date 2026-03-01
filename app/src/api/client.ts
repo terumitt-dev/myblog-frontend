@@ -3,6 +3,7 @@ import { useContext } from "react";
 import { AuthContext } from "@/context/AuthContext";
 
 // APIクライアント
+// 本番環境では必ずVITE_API_BASE_URLを設定すること
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 export interface ApiResponse<T> {
