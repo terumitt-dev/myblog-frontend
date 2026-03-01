@@ -6,19 +6,22 @@ import { AuthContext } from "@/context/AuthContext";
 // 本番環境では必ずVITE_API_BASE_URLを設定すること（HTTPS必須）
 const getApiBase = (): string => {
   const apiBase = import.meta.env.VITE_API_BASE_URL;
-  
+
   // 本番ビルド時は環境変数必須
   if (import.meta.env.PROD && !apiBase) {
     throw new Error('VITE_API_BASE_URL is required in production');
   }
-  
+
   // 本番ビルド時はHTTPS必須
   if (import.meta.env.PROD && apiBase && !apiBase.startsWith('https://')) {
     throw new Error('VITE_API_BASE_URL must use HTTPS in production');
   }
-  
+
   // 開発環境ではローカルホストにフォールバック
-  return apiBase || "http://localhost:3000/api";
+  const baseUrl = apiBase || "http://localhost:3000/api";
+  
+  // 末尾スラッシュを除去（二重スラッシュ防止）
+  return baseUrl.replace(/\/$/, '');
 };
 
 export const API_BASE = getApiBase();
