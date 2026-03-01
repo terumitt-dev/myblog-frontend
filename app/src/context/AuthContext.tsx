@@ -1,8 +1,6 @@
 // app/src/context/AuthContext.tsx
 import { createContext, useState, useCallback } from "react";
-
-// APIベースURL（client.tsと統一）
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+import { API_BASE } from "@/api/client";
 
 // ⚠️ 重要：本番環境では絶対に使用しないでください
 // この実装は開発環境専用の簡易認証システムです

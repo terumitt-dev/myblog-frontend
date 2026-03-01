@@ -4,7 +4,7 @@ import { AuthContext } from "@/context/AuthContext";
 
 // APIクライアント
 // 本番環境では必ずVITE_API_BASE_URLを設定すること
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+export const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
 
 export interface ApiResponse<T> {
   data?: T;
@@ -89,8 +89,11 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       // 204 No Content や空ボディの場合は json() を呼ばない
       if (!hasJsonBody(response)) {
         if (!response.ok) {
-          return { error: "API Error" };
+          return { 
+            error: `API Error: ${response.status} ${response.statusText}` 
+          };
         }
+        // 成功時の空レスポンス（204など）
         return { data: undefined };
       }
 
@@ -99,11 +102,18 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         data = await response.json();
       } catch (e) {
         console.error("JSON Parse Error:", e);
+        if (!response.ok) {
+          return { 
+            error: `API Error: ${response.status} ${response.statusText}` 
+          };
+        }
         return { error: "Invalid JSON response" };
       }
 
       if (!response.ok) {
-        return { error: data.message || "API Error" };
+        // エラーレスポンスからメッセージを抽出
+        const errorMessage = data?.message || data?.error || "API Error";
+        return { error: errorMessage };
       }
 
       return { data };
