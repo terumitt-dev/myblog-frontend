@@ -63,16 +63,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { success: false, error: "invalid_credentials" };
       }
 
-      // 入力を正規化（先頭末尾スペースを除去）
+      // メールアドレスのみ正規化（パスワードは意図的なスペースを許容）
       const normalizedEmail = email.trim();
-      const normalizedPassword = password.trim();
 
       try {
         // Rails API経由での認証
         const response = await fetch(`${API_BASE}/auth/sign_in`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ admin: { email: normalizedEmail, password: normalizedPassword } }),
+          body: JSON.stringify({ admin: { email: normalizedEmail, password } }),
         });
 
         if (!response.ok) {
