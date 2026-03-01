@@ -24,8 +24,10 @@ const getApiBase = (): string => {
 export const API_BASE = getApiBase();
 
 // 成功時の型とエラー時の型を明確に分離
+// 204 No Contentなど空レスポンスの場合はnullを返す
 export type ApiResponse<T> = 
   | { data: T; error?: never }
+  | { data: null; error?: never }  // 空レスポンス（204など）
   | { data?: never; error: string };
 
 interface BlogCreateData {
@@ -112,7 +114,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           };
         }
         // 成功時の空レスポンス（204など）
-        return { data: {} as T };
+        return { data: null };
       }
 
       let data;
