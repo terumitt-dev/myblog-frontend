@@ -137,13 +137,17 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       try {
         data = await response.json();
       } catch (e) {
-        console.error("JSON Parse Error:", e);
+        if (import.meta.env.DEV) {
+          console.error("JSON Parse Error:", e);
+        }
         if (!response.ok) {
-          // 非JSON時はクローンからテキストとして取得（ログ用）
+          // 非JSON時はクローンからテキストとして取得（開発環境のみログ）
           try {
             const text = await clonedResponse.text();
-            // セキュリティ: 詳細なエラー内容は露出させず、ログに記録
-            console.error('API Error Details:', text.substring(0, 500));
+            // 開発環境のみ詳細ログ出力
+            if (import.meta.env.DEV) {
+              console.error('API Error Details:', text.substring(0, 500));
+            }
             return { 
               ok: false,
               error: `API Error: ${response.status} ${response.statusText}`
