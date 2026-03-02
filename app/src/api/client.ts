@@ -136,10 +136,20 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       } catch (e) {
         console.error("JSON Parse Error:", e);
         if (!response.ok) {
-          return { 
-            ok: false,
-            error: `API Error: ${response.status} ${response.statusText}` 
-          };
+          // 非JSON時はテキストとして取得を試みる
+          try {
+            const text = await response.clone().text();
+            const errorMessage = text || `API Error: ${response.status} ${response.statusText}`;
+            return { 
+              ok: false,
+              error: errorMessage.substring(0, 200) // 長すぎる場合は切り詰め
+            };
+          } catch {
+            return { 
+              ok: false,
+              error: `API Error: ${response.status} ${response.statusText}` 
+            };
+          }
         }
         // 成功時のJSONパース失敗は空レスポンス扱い
         return { ok: true, data: null };
