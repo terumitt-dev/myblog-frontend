@@ -53,7 +53,7 @@ interface CommentCreateData {
 interface AdminData {
   id: number;
   email: string;
-  name: string;
+  name?: string;
 }
 
 // JWTはAuthorizationヘッダーから取得するため、レスポンスボディにtokenは含まれない
