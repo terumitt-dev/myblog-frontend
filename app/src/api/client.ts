@@ -130,15 +130,18 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         return { ok: true, data: null };
       }
 
+      // レスポンスボディを先にクローン（json()失敗時のtext()取得のため）
+      const clonedResponse = response.clone();
+
       let data;
       try {
         data = await response.json();
       } catch (e) {
         console.error("JSON Parse Error:", e);
         if (!response.ok) {
-          // 非JSON時はテキストとして取得を試みる
+          // 非JSON時はクローンからテキストとして取得
           try {
-            const text = await response.clone().text();
+            const text = await clonedResponse.text();
             const errorMessage = text || `API Error: ${response.status} ${response.statusText}`;
             return { 
               ok: false,

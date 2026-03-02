@@ -47,7 +47,7 @@ const Admin = () => {
     try {
       const response = await blogsApi.getAll({ limit: 100 });
       if (!response.ok) {
-        throw new Error(response.error);
+        throw new Error(response.error || "API Error");
       }
 
       const data: { blogs?: BlogWithCategoryName[] } = response.data || {};
@@ -168,7 +168,7 @@ const Admin = () => {
         const response = await blogsApi.update(editingPostId, updateData);
 
         if (!response.ok) {
-          throw new Error(response.error);
+          throw new Error(response.error || "API Error");
         }
 
         if (!response.data) {
@@ -203,7 +203,7 @@ const Admin = () => {
         const response = await blogsApi.create(newPostData);
 
         if (!response.ok) {
-          throw new Error(response.error);
+          throw new Error(response.error || "API Error");
         }
 
         if (!response.data) {
@@ -248,7 +248,7 @@ const Admin = () => {
       const response = await blogsApi.delete(id);
 
       if (!response.ok) {
-        throw new Error(response.error);
+        throw new Error(response.error || "API Error");
       }
 
       // フロントエンドの状態から削除
