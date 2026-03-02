@@ -139,13 +139,14 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       } catch (e) {
         console.error("JSON Parse Error:", e);
         if (!response.ok) {
-          // 非JSON時はクローンからテキストとして取得
+          // 非JSON時はクローンからテキストとして取得（ログ用）
           try {
             const text = await clonedResponse.text();
-            const errorMessage = text || `API Error: ${response.status} ${response.statusText}`;
+            // セキュリティ: 詳細なエラー内容は露出させず、ログに記録
+            console.error('API Error Details:', text.substring(0, 500));
             return { 
               ok: false,
-              error: errorMessage.substring(0, 200) // 長すぎる場合は切り詰め
+              error: `API Error: ${response.status} ${response.statusText}`
             };
           } catch {
             return { 
