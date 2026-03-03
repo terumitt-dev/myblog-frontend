@@ -17,11 +17,11 @@ const getApiBase = (): string => {
     throw new Error('VITE_API_BASE_URL must use HTTPS in production');
   }
 
-  // 開発環境ではローカルホストにフォールバック
-  const baseUrl = apiBase || "http://localhost:3000/api";
+  // 開発環境ではViteプロキシ等を利用できるよう相対パスにフォールバック
+  const baseUrl = apiBase || "/api";
   
   // 末尾スラッシュを除去（二重スラッシュ防止）
-  return baseUrl.replace(/\/$/, '');
+  return baseUrl.replace(/\/$/, "");
 };
 
 export const API_BASE = getApiBase();
@@ -188,9 +188,17 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       }
 
       if (!response.ok) {
-        // エラーレスポンスからメッセージを抽出
-        const errorMessage = data?.message || data?.error || "API Error";
-        return { ok: false, error: errorMessage };
+        // エラーレスポンスからメッセージを抽出（無い場合でもステータスは返す）
+        const msg = (data && typeof data === "object")
+          ? ((data as any).message || (data as any).error || "")
+          : "";
+
+        return {
+          ok: false,
+          error: msg
+            ? `API Error: ${response.status} ${response.statusText} - ${String(msg)}`
+            : `API Error: ${response.status} ${response.statusText}`,
+        };
       }
 
       return { ok: true, data };
