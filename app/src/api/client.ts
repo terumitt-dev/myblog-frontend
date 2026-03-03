@@ -120,23 +120,31 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
 
       // 204 No Content や空ボディの場合は json() を呼ばない
       if (!hasJsonBody(response)) {
+        const text = await response.text();
+
         if (!response.ok) {
+          const detail = text.trim().slice(0, 500);
           return {
             ok: false,
-            error: `API Error: ${response.status} ${response.statusText}`,
+            error: detail
+              ? `API Error: ${response.status} ${response.statusText} - ${detail}`
+              : `API Error: ${response.status} ${response.statusText}`,
           };
         }
 
-        // Content-Type が不正/未設定でもボディがある場合があるため text() で判定する
-        const text = await response.text();
+        // 空ボディは成功（204等）
         if (!text.trim()) {
           return { ok: true, data: null };
         }
 
+        // JSON の可能性がある場合のみパースし、失敗しても成功扱いで落とす
         try {
           return { ok: true, data: JSON.parse(text) as T };
-        } catch {
-          return { ok: false, error: "Invalid JSON response" };
+        } catch (e) {
+          if (import.meta.env.DEV) {
+            console.warn("Non-JSON success response:", text.slice(0, 200), e);
+          }
+          return { ok: true, data: null };
         }
       }
 

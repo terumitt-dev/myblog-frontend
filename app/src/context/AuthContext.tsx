@@ -60,10 +60,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (data?.status === "success" && data?.data) {
           // Authorization ヘッダーからJWTを取得
           const authHeader = response.headers.get("Authorization");
-          const token = authHeader?.replace(/^Bearer\s+/i, "").trim() || null;
+          const headerToken =
+            authHeader?.replace(/^Bearer\s+/i, "").trim() || null;
+          const bodyToken = typeof data?.token === "string" ? data.token : null;
+          const token = headerToken || bodyToken;
 
           if (!token) {
-            console.error("JWT token not found in response headers");
+            console.error(
+              "JWT token not found (Authorization header may require Access-Control-Expose-Headers)"
+            );
             return { success: false, error: "token_missing" };
           }
 
