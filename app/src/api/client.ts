@@ -140,26 +140,31 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         if (import.meta.env.DEV) {
           console.error("JSON Parse Error:", e);
         }
+
+        // エラー応答時は従来通り（可能ならテキストも取得）
         if (!response.ok) {
-          // 非JSON時はクローンからテキストとして取得（開発環境のみログ）
           try {
             const text = await clonedResponse.text();
-            // 開発環境のみ詳細ログ出力
             if (import.meta.env.DEV) {
-              console.error('API Error Details:', text.substring(0, 500));
+              console.error("API Error Details:", text.substring(0, 500));
             }
-            return { 
-              ok: false,
-              error: `API Error: ${response.status} ${response.statusText}`
-            };
           } catch {
-            return { 
-              ok: false,
-              error: `API Error: ${response.status} ${response.statusText}` 
-            };
+            // noop
           }
+          return {
+            ok: false,
+            error: `API Error: ${response.status} ${response.statusText}`,
+          };
         }
-        // 成功時のJSONパース失敗は空レスポンス扱い
+
+        // 成功時は「本当に空」かを判定し、それ以外は失敗扱いにする
+        const contentLength = response.headers.get("Content-Length");
+        const isTrulyEmpty = response.status === 204 || contentLength === "0";
+
+        if (!isTrulyEmpty) {
+          return { ok: false, error: "Invalid JSON response" };
+        }
+
         return { ok: true, data: null };
       }
 
