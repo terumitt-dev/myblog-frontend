@@ -12,9 +12,18 @@ const getApiBase = (): string => {
     throw new Error('VITE_API_BASE_URL is required in production');
   }
 
-  // 本番ビルド時はHTTPS必須
-  if (import.meta.env.PROD && apiBase && !apiBase.startsWith('https://')) {
-    throw new Error('VITE_API_BASE_URL must use HTTPS in production');
+  // 本番ビルド時は「絶対URLならHTTPS必須」。相対パス（同一オリジン想定）は許可する。
+  if (import.meta.env.PROD && apiBase) {
+    const isRelative = apiBase.startsWith("/");
+    const isHttpsAbsolute = apiBase.startsWith("https://");
+    const isHttpAbsolute = apiBase.startsWith("http://");
+
+    if (!isRelative && !isHttpsAbsolute) {
+      if (isHttpAbsolute) {
+        throw new Error("VITE_API_BASE_URL must use HTTPS in production");
+      }
+      throw new Error("VITE_API_BASE_URL must be an absolute https URL or a relative path in production");
+    }
   }
 
   // 開発環境ではViteプロキシ等を利用できるよう相対パスにフォールバック
@@ -150,7 +159,8 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           if (import.meta.env.DEV) {
             console.warn("Non-JSON success response:", text.slice(0, 200), e);
           }
-          return { ok: true, data: null };
+          // JSONではないが成功している場合、本文をそのまま返して情報欠落を防ぐ
+          return { ok: true, data: text as unknown as T };
         }
       }
 
