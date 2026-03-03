@@ -94,7 +94,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
           },
         });
       }

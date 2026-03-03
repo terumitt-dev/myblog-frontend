@@ -159,19 +159,20 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           console.error("JSON Parse Error:", e);
         }
 
-        // エラー応答時は従来通り（可能ならテキストも取得）
+        // エラー応答時は本文を可能な限り取り込んで返す
         if (!response.ok) {
+          let detail = "";
           try {
-            const text = await clonedResponse.text();
-            if (import.meta.env.DEV) {
-              console.error("API Error Details:", text.substring(0, 500));
-            }
+            detail = (await clonedResponse.text()).trim().slice(0, 500);
           } catch {
             // noop
           }
+
           return {
             ok: false,
-            error: `API Error: ${response.status} ${response.statusText}`,
+            error: detail
+              ? `API Error: ${response.status} ${response.statusText} - ${detail}`
+              : `API Error: ${response.status} ${response.statusText}`,
           };
         }
 
