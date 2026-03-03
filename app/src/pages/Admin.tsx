@@ -171,8 +171,10 @@ const Admin = () => {
           throw new Error(response.error || "API Error");
         }
 
-        if (!response.data) {
-          throw new Error("更新レスポンスが空です");
+        if (response.data == null) {
+          // 204等でレスポンスボディが空でも更新自体は成功し得るため再取得で同期する
+          await loadPosts();
+          return;
         }
 
         const updatedBlog = normalizeBlogResponse(response.data);
