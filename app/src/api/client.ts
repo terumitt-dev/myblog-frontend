@@ -67,13 +67,19 @@ interface AuthLoginResponse {
 // 204 No Content は常にボディなし
 // それ以外はContent-Typeをチェック（ただしエラー時はボディがある前提）
 const hasJsonBody = (response: Response): boolean => {
-  if (response.status === 204) return false;
-  
+  // 明確にボディが無い/期待できないステータス
+  if (response.status === 204 || response.status === 205 || response.status === 304) {
+    return false;
+  }
+
+  const contentLength = response.headers.get("Content-Length");
+  if (contentLength === "0") return false;
+
   const contentType = response.headers.get("Content-Type");
   if (contentType && /\bjson\b/i.test(contentType)) {
     return true;
   }
-  
+
   // Content-Typeが不正でもエラーレスポンスならボディがある可能性が高い
   // 安全のためJSONパース試行を許可
   return !response.ok;

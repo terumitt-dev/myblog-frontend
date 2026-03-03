@@ -15,7 +15,7 @@ type AuthContextType = {
   token: string | null;
   getAuthToken: () => string | null;
   login: (email: string, password: string) => Promise<LoginResult>;
-  logout: () => void;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,7 +46,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
 
         if (!response.ok) {
-          return { success: false, error: "invalid_credentials" };
+          if (response.status === 401 || response.status === 422) {
+            return { success: false, error: "invalid_credentials" };
+          }
+          return { success: false, error: "network_error" };
         }
 
         let data: any = null;
