@@ -70,7 +70,7 @@ const hasJsonBody = (response: Response): boolean => {
   if (response.status === 204) return false;
   
   const contentType = response.headers.get("Content-Type");
-  if (contentType && contentType.includes("application/json")) {
+  if (contentType && /\bjson\b/i.test(contentType)) {
     return true;
   }
   

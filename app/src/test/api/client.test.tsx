@@ -9,17 +9,24 @@ const mockFetch = vi.fn();
 (globalThis as any).fetch = mockFetch;
 
 // レスポンスモックのヘルパー（headers付き）
-const createMockResponse = (body: object, status = 200) => ({
-  ok: status >= 200 && status < 300,
-  status,
-  headers: {
-    get: (key: string) => {
-      if (key === "Content-Type") return "application/json";
-      return null;
+const createMockResponse = (body: any, status = 200) => {
+  const make = () => ({
+    ok: status >= 200 && status < 300,
+    status,
+    statusText: status >= 200 && status < 300 ? "OK" : "Error",
+    headers: {
+      get: (key: string) => {
+        if (key.toLowerCase() === "content-type") return "application/json";
+        return null;
+      },
     },
-  },
-  json: async () => body,
-});
+    json: async () => body,
+    text: async () => (typeof body === "string" ? body : JSON.stringify(body)),
+    clone: () => make(),
+  });
+
+  return make();
+};
 
 describe("認証API (useAuthenticatedApi)", () => {
   beforeEach(() => {

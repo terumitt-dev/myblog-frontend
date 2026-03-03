@@ -49,26 +49,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return { success: false, error: "invalid_credentials" };
         }
 
-        const data = await response.json();
+        let data: any = null;
+        try {
+          data = await response.json();
+        } catch {
+          data = null;
+        }
 
         // Rails APIのレスポンス形式に合わせて処理
-        if (data.status === "success" && data.data) {
+        if (data?.status === "success" && data?.data) {
           // Authorization ヘッダーからJWTを取得
           const authHeader = response.headers.get("Authorization");
           const token = authHeader?.replace(/^Bearer\s+/i, "").trim() || null;
-          
+
           if (!token) {
             console.error("JWT token not found in response headers");
             return { success: false, error: "token_missing" };
           }
-          
+
           setIsLoggedIn(true);
           setToken(token);
-
           return { success: true };
-        } else {
-          return { success: false, error: "invalid_credentials" };
         }
+
+        return { success: false, error: "invalid_credentials" };
       } catch (error) {
         console.error("Authentication error:", error);
         return { success: false, error: "network_error" };
