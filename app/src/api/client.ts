@@ -121,13 +121,23 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       // 204 No Content や空ボディの場合は json() を呼ばない
       if (!hasJsonBody(response)) {
         if (!response.ok) {
-          return { 
+          return {
             ok: false,
-            error: `API Error: ${response.status} ${response.statusText}` 
+            error: `API Error: ${response.status} ${response.statusText}`,
           };
         }
-        // 成功時の空レスポンス（204など）
-        return { ok: true, data: null };
+
+        // Content-Type が不正/未設定でもボディがある場合があるため text() で判定する
+        const text = await response.text();
+        if (!text.trim()) {
+          return { ok: true, data: null };
+        }
+
+        try {
+          return { ok: true, data: JSON.parse(text) as T };
+        } catch {
+          return { ok: false, error: "Invalid JSON response" };
+        }
       }
 
       // レスポンスボディを先にクローン（json()失敗時のtext()取得のため）
@@ -157,9 +167,9 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           };
         }
 
-        // 成功時は「本当に空」かを判定し、それ以外は失敗扱いにする
-        const contentLength = response.headers.get("Content-Length");
-        const isTrulyEmpty = response.status === 204 || contentLength === "0";
+        // 成功時は「本当に空」かを実体で判定し、それ以外は失敗扱いにする
+        const raw = await clonedResponse.text();
+        const isTrulyEmpty = response.status === 204 || !raw.trim();
 
         if (!isTrulyEmpty) {
           return { ok: false, error: "Invalid JSON response" };
