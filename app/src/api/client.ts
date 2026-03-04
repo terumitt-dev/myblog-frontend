@@ -96,9 +96,16 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const safeEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+      const isAbsoluteEndpoint = /^https?:\/\//i.test(endpoint);
+      const safeEndpoint = isAbsoluteEndpoint
+        ? endpoint
+        : endpoint.startsWith("/")
+          ? endpoint
+          : `/${endpoint}`;
 
-      const response = await fetch(`${API_BASE}${safeEndpoint}`, {
+      const url = isAbsoluteEndpoint ? safeEndpoint : `${API_BASE}${safeEndpoint}`;
+
+      const response = await fetch(url, {
         ...options,
         headers,
       });
