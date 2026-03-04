@@ -208,7 +208,7 @@ const Admin = () => {
           throw new Error(response.error || "API Error");
         }
 
-        if (!response.data) {
+        if (response.data == null) {
           throw new Error("作成レスポンスが空です");
         }
 

@@ -120,7 +120,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           return { ok: true, data: null };
         }
 
-        // JSON の可能性がある場合のみパースする（失敗時は呼び出し側に明示的にエラーとして返す）
+        // JSON の可能性がある場合のみパースする
         try {
           return { ok: true, data: JSON.parse(text) as T };
         } catch (e) {
@@ -128,13 +128,8 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
             console.warn("Non-JSON success response:", text.slice(0, 200), e);
           }
 
-          const detail = text.trim().slice(0, 500);
-          return {
-            ok: false,
-            error: detail
-              ? `Invalid JSON response: ${detail}`
-              : "Invalid JSON response",
-          };
+          // 成功時は非JSONでも本文を返して成功扱いにする（上のjson()失敗時ハンドリングと整合）
+          return { ok: true, data: text as unknown as T };
         }
       }
 
