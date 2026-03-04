@@ -1,6 +1,6 @@
 // app/src/context/AuthContext.tsx
 import { createContext, useState, useCallback } from "react";
-import { API_BASE } from "@/api/client";
+import { API_BASE } from "@/api/base";
 
 type LoginResult = {
   success: boolean;

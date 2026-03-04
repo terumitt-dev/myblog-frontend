@@ -48,6 +48,7 @@ describe("認証API (useAuthenticatedApi)", () => {
         "test@example.com",
         "password123",
         "password123",
+        "admin-signup-password",
       );
 
       expect(mockFetch).toHaveBeenCalledWith(
@@ -72,6 +73,7 @@ describe("認証API (useAuthenticatedApi)", () => {
         "test@example.com",
         "password123",
         "password123",
+        "admin-signup-password",
       );
 
       const callArgs = mockFetch.mock.calls[0];

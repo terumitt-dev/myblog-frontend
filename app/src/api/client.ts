@@ -1,50 +1,7 @@
 // app/src/api/client.ts
 import { useContext } from "react";
 import { AuthContext } from "@/context/AuthContext";
-
-// APIクライアント
-// 本番環境では必ずVITE_API_BASE_URLを設定すること（HTTPS必須）
-const getApiBase = (): string => {
-  const raw = import.meta.env.VITE_API_BASE_URL;
-  const apiBase = typeof raw === "string" ? raw.trim() : "";
-
-  // 本番ビルド時は環境変数必須（空白のみもNG）
-  if (import.meta.env.PROD && !apiBase) {
-    throw new Error("VITE_API_BASE_URL is required in production");
-  }
-
-  // 本番ビルド時は「絶対URLならHTTPS必須」。相対パス（同一オリジン想定）は許可する。
-  if (import.meta.env.PROD && apiBase) {
-    const isRelative = apiBase.startsWith("/");
-    const isHttpsAbsolute = apiBase.startsWith("https://");
-    const isHttpAbsolute = apiBase.startsWith("http://");
-
-    if (!isRelative && !isHttpsAbsolute) {
-      if (isHttpAbsolute) {
-        throw new Error("VITE_API_BASE_URL must use HTTPS in production");
-      }
-      throw new Error(
-        "VITE_API_BASE_URL must be an absolute https URL or a relative path in production",
-      );
-    }
-  }
-
-  // 開発環境ではViteプロキシ等を利用できるよう相対パスにフォールバック
-  const baseUrl = apiBase || "/api";
-
-  // 相対パスは常に `/` 始まりに正規化（例: "api" -> "/api"）
-  const normalizedBaseUrl =
-    baseUrl.startsWith("http://") || baseUrl.startsWith("https://")
-      ? baseUrl
-      : baseUrl.startsWith("/")
-        ? baseUrl
-        : `/${baseUrl}`;
-
-  // 末尾スラッシュを除去（複数本も確実に除去）
-  return normalizedBaseUrl.replace(/\/+$/, "");
-};
-
-export const API_BASE = getApiBase();
+import { API_BASE } from "@/api/base";
 
 // 成功時の型とエラー時の型を明確に分離
 // ok プロパティで成功/失敗を明確に判別可能
@@ -209,15 +166,16 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           };
         }
 
-        // 成功時は「本当に空」かを実体で判定し、それ以外は失敗扱いにする
+        // 成功時は「本当に空」かを実体で判定
         const raw = await clonedResponse.text();
         const isTrulyEmpty = response.status === 204 || !raw.trim();
 
-        if (!isTrulyEmpty) {
-          return { ok: false, error: "Invalid JSON response" };
+        if (isTrulyEmpty) {
+          return { ok: true, data: null };
         }
 
-        return { ok: true, data: null };
+        // 成功時にJSONでない本文が返るケース（text/plain 等）を許容する
+        return { ok: true, data: raw as unknown as T };
       }
 
       if (!response.ok) {
