@@ -29,13 +29,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = useCallback(
     async (email: string, password: string): Promise<LoginResult> => {
-      // 入力値検証
-      if (!email || !password) {
-        return { success: false, error: "invalid_credentials" };
-      }
-
       // メールアドレスのみ正規化（パスワードは意図的なスペースを許容）
       const normalizedEmail = email.trim();
+
+      // 入力値検証
+      if (!normalizedEmail || !password) {
+        return { success: false, error: "invalid_credentials" };
+      }
 
       try {
         // Rails API経由での認証

@@ -96,7 +96,9 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${API_BASE}${endpoint}`, {
+      const safeEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+
+      const response = await fetch(`${API_BASE}${safeEndpoint}`, {
         ...options,
         headers,
       });
@@ -175,14 +177,24 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
 
       if (!response.ok) {
         // エラーレスポンスからメッセージを抽出（無い場合でもステータスは返す）
-        const msg = (data && typeof data === "object")
-          ? ((data as any).message || (data as any).error || "")
-          : "";
+        const rawMsg =
+          data && typeof data === "object"
+            ? ((data as any).message ?? (data as any).error ?? (data as any).errors ?? "")
+            : "";
+
+        const msg =
+          typeof rawMsg === "string"
+            ? rawMsg
+            : Array.isArray(rawMsg)
+              ? rawMsg.join(", ")
+              : rawMsg
+                ? JSON.stringify(rawMsg)
+                : "";
 
         return {
           ok: false,
           error: msg
-            ? `API Error: ${response.status} ${response.statusText} - ${String(msg)}`
+            ? `API Error: ${response.status} ${response.statusText} - ${msg}`
             : `API Error: ${response.status} ${response.statusText}`,
         };
       }
