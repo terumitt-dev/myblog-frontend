@@ -27,10 +27,18 @@ const getApiBase = (): string => {
   }
 
   // 開発環境ではViteプロキシ等を利用できるよう相対パスにフォールバック
-  const baseUrl = apiBase || "/api";
-  
-  // 末尾スラッシュを除去（二重スラッシュ防止）
-  return baseUrl.replace(/\/$/, "");
+  const baseUrl = (apiBase || "/api").trim();
+
+  // 相対パスは常に `/` 始まりに正規化（例: "api" -> "/api"）
+  const normalizedBaseUrl =
+    baseUrl.startsWith("http://") || baseUrl.startsWith("https://")
+      ? baseUrl
+      : baseUrl.startsWith("/")
+        ? baseUrl
+        : `/${baseUrl}`;
+
+  // 末尾スラッシュを除去（複数本も確実に除去）
+  return normalizedBaseUrl.replace(/\/+$/, "");
 };
 
 export const API_BASE = getApiBase();
@@ -152,15 +160,21 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           return { ok: true, data: null };
         }
 
-        // JSON の可能性がある場合のみパースし、失敗しても成功扱いで落とす
+        // JSON の可能性がある場合のみパースする（失敗時は呼び出し側に明示的にエラーとして返す）
         try {
           return { ok: true, data: JSON.parse(text) as T };
         } catch (e) {
           if (import.meta.env.DEV) {
             console.warn("Non-JSON success response:", text.slice(0, 200), e);
           }
-          // JSONではないが成功している場合、本文をそのまま返して情報欠落を防ぐ
-          return { ok: true, data: text as unknown as T };
+
+          const detail = text.trim().slice(0, 500);
+          return {
+            ok: false,
+            error: detail
+              ? `Invalid JSON response: ${detail}`
+              : "Invalid JSON response",
+          };
         }
       }
 
