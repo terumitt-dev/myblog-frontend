@@ -5,11 +5,12 @@ import { AuthContext } from "@/context/AuthContext";
 // APIクライアント
 // 本番環境では必ずVITE_API_BASE_URLを設定すること（HTTPS必須）
 const getApiBase = (): string => {
-  const apiBase = import.meta.env.VITE_API_BASE_URL;
+  const raw = import.meta.env.VITE_API_BASE_URL;
+  const apiBase = typeof raw === "string" ? raw.trim() : "";
 
-  // 本番ビルド時は環境変数必須
+  // 本番ビルド時は環境変数必須（空白のみもNG）
   if (import.meta.env.PROD && !apiBase) {
-    throw new Error('VITE_API_BASE_URL is required in production');
+    throw new Error("VITE_API_BASE_URL is required in production");
   }
 
   // 本番ビルド時は「絶対URLならHTTPS必須」。相対パス（同一オリジン想定）は許可する。
@@ -22,12 +23,14 @@ const getApiBase = (): string => {
       if (isHttpAbsolute) {
         throw new Error("VITE_API_BASE_URL must use HTTPS in production");
       }
-      throw new Error("VITE_API_BASE_URL must be an absolute https URL or a relative path in production");
+      throw new Error(
+        "VITE_API_BASE_URL must be an absolute https URL or a relative path in production",
+      );
     }
   }
 
   // 開発環境ではViteプロキシ等を利用できるよう相対パスにフォールバック
-  const baseUrl = (apiBase || "/api").trim();
+  const baseUrl = apiBase || "/api";
 
   // 相対パスは常に `/` 始まりに正規化（例: "api" -> "/api"）
   const normalizedBaseUrl =
@@ -291,11 +294,12 @@ export const useAuthenticatedApi = () => {
 
     // 認証API
     authApi: {
-      signUp: (email: string, password: string, passwordConfirmation: string) =>
+      signUp: (email: string, password: string, passwordConfirmation: string, signupPassword: string) =>
         apiCall<AuthLoginResponse>("/auth/sign_up", {
           method: "POST",
           body: JSON.stringify({
             admin: { email, password, password_confirmation: passwordConfirmation },
+            signup_password: signupPassword,
           }),
         }),
 

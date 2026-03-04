@@ -52,6 +52,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return { success: false, error: "network_error" };
         }
 
+        // 先に Authorization ヘッダーからJWTを取得（ボディ無し成功に備える）
+        const authHeader = response.headers.get("Authorization");
+        const headerToken = authHeader?.replace(/^Bearer\s+/i, "").trim() || null;
+
         let data: any = null;
         try {
           data = await response.json();
@@ -59,25 +63,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           data = null;
         }
 
-        // Rails APIのレスポンス形式に合わせて処理
-        if (data?.status === "success" && data?.data) {
-          // Authorization ヘッダーからJWTを取得
-          const authHeader = response.headers.get("Authorization");
-          const headerToken =
-            authHeader?.replace(/^Bearer\s+/i, "").trim() || null;
-          const bodyToken = typeof data?.token === "string" ? data.token : null;
-          const token = headerToken || bodyToken;
+        const bodyToken = typeof data?.token === "string" ? data.token : null;
+        const tokenFromResponse = headerToken || bodyToken;
 
-          if (!token) {
-            console.error(
-              "JWT token not found (Authorization header may require Access-Control-Expose-Headers)"
-            );
-            return { success: false, error: "token_missing" };
-          }
-
+        // ボディが無い/形式が異なる成功レスポンスでも、トークンが取れればログイン成功にする
+        if (response.ok && tokenFromResponse) {
           setIsLoggedIn(true);
-          setToken(token);
+          setToken(tokenFromResponse);
           return { success: true };
+        }
+
+        // Rails APIのレスポンス形式（JSON）に合わせた成功判定も残す
+        if (data?.status === "success" && data?.data && tokenFromResponse) {
+          setIsLoggedIn(true);
+          setToken(tokenFromResponse);
+          return { success: true };
+        }
+
+        if (response.ok && !tokenFromResponse) {
+          console.error(
+            "JWT token not found (Authorization header may require Access-Control-Expose-Headers)",
+          );
+          return { success: false, error: "token_missing" };
         }
 
         return { success: false, error: "invalid_credentials" };

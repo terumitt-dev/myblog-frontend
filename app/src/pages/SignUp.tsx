@@ -11,13 +11,14 @@ const SignUp = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async () => {
     // メールは空白除去、パスワードは意図的なスペースを許容
-    if (!email.trim() || !password || !passwordConfirmation) {
+    if (!email.trim() || !password || !passwordConfirmation || !signupPassword) {
       setError("全てのフィールドを入力してください。");
       return;
     }
@@ -44,6 +45,7 @@ const SignUp = () => {
         normalizedEmail,
         password,
         passwordConfirmation,
+        signupPassword,
       );
 
       if (!signUpResponse.ok) {
@@ -121,6 +123,23 @@ const SignUp = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
                   disabled={loading}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  サインアップパスワード
+                </label>
+                <input
+                  type="password"
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  placeholder="管理者登録用パスワード"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                  disabled={loading}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  管理者登録に必要なパスワードを入力してください
+                </p>
               </div>
 
               {error && (
