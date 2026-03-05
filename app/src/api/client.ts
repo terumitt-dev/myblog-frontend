@@ -108,9 +108,11 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       const isAbsoluteEndpoint = /^https?:\/\//i.test(endpoint);
       const safeEndpoint = isAbsoluteEndpoint
         ? endpoint
-        : endpoint.startsWith("/")
+        : endpoint.startsWith("?")
           ? endpoint
-          : `/${endpoint}`;
+          : endpoint.startsWith("/")
+            ? endpoint
+            : `/${endpoint}`;
 
       const base = API_BASE === "/" ? "" : API_BASE;
       const url = isAbsoluteEndpoint ? safeEndpoint : `${base}${safeEndpoint}`;
