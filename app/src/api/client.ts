@@ -70,9 +70,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
   ): Promise<ApiResponse<T>> {
     try {
       // ヘッダーの準備
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
+      const headers: Record<string, string> = {};
 
       // 既存のヘッダーをマージ
       if (options?.headers) {
@@ -88,6 +86,18 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         } else {
           Object.assign(headers, existingHeaders);
         }
+      }
+
+      // ボディがある場合のみデフォルトの Content-Type を付与（既存指定があれば尊重）
+      const hasContentType = Object.keys(headers).some(
+        (k) => k.toLowerCase() === "content-type",
+      );
+      const hasBody = options?.body != null;
+      const isFormData =
+        typeof FormData !== "undefined" && options?.body instanceof FormData;
+
+      if (hasBody && !hasContentType && !isFormData) {
+        headers["Content-Type"] = "application/json";
       }
 
       const isProtocolRelative = endpoint.startsWith("//");

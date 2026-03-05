@@ -85,6 +85,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         if (response.ok && !tokenFromResponse) {
+          // 成功扱いでもトークンが無い場合は未認証として扱い、状態をクリアする
+          setIsLoggedIn(false);
+          setToken(null);
+
           console.error(
             "JWT token not found (Authorization header may require Access-Control-Expose-Headers)",
           );
