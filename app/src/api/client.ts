@@ -90,12 +90,6 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         }
       }
 
-      // 認証トークンがある場合は追加
-      const token = getAuthToken();
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
       const isAbsoluteEndpoint = /^https?:\/\//i.test(endpoint);
       const safeEndpoint = isAbsoluteEndpoint
         ? endpoint
@@ -104,6 +98,12 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           : `/${endpoint}`;
 
       const url = isAbsoluteEndpoint ? safeEndpoint : `${API_BASE}${safeEndpoint}`;
+
+      // 認証トークンがある場合は追加（絶対URLには付与しない：トークン流出対策）
+      const token = getAuthToken();
+      if (token && !isAbsoluteEndpoint) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
 
       const response = await fetch(url, {
         ...options,
