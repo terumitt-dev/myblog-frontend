@@ -82,9 +82,9 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
             headers[key] = value;
           });
         } else if (Array.isArray(existingHeaders)) {
-          existingHeaders.forEach(([key, value]) => {
+          for (const [key, value] of existingHeaders) {
             headers[key] = value;
-          });
+          }
         } else {
           Object.assign(headers, existingHeaders);
         }

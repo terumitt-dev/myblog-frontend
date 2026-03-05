@@ -39,7 +39,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       try {
         // Rails API経由での認証
-        const response = await fetch(`${API_BASE}/auth/sign_in`, {
+        const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
+        const response = await fetch(`${base}/auth/sign_in`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ admin: { email: normalizedEmail, password } }),
@@ -100,7 +101,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       // ログアウトAPI呼び出し（トークン付き）
       if (token) {
-        await fetch(`${API_BASE}/auth/sign_out`, {
+        const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
+        await fetch(`${base}/auth/sign_out`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
