@@ -47,6 +47,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
 
         if (!response.ok) {
+          setIsLoggedIn(false);
+          setToken(null);
+
           if (response.status === 401 || response.status === 422) {
             return { success: false, error: "invalid_credentials" };
           }
