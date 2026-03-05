@@ -105,13 +105,18 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       const base = API_BASE === "/" ? "" : API_BASE;
       const url = isAbsoluteEndpoint ? safeEndpoint : `${base}${safeEndpoint}`;
 
-      // 認証トークンがある場合は追加（最終URLが同一オリジンのときのみ：トークン流出対策）
+      // 認証トークンがある場合は追加（設定されたAPIオリジンのときのみ：トークン流出対策）
       const token = getAuthToken();
 
       let shouldAttachAuth = false;
       if (typeof window !== "undefined") {
         try {
-          shouldAttachAuth = new URL(url, window.location.href).origin === window.location.origin;
+          const resolvedUrl = new URL(url, window.location.href);
+          const allowedOrigin = /^https?:\/\//i.test(API_BASE)
+            ? new URL(API_BASE).origin
+            : window.location.origin;
+
+          shouldAttachAuth = resolvedUrl.origin === allowedOrigin;
         } catch {
           shouldAttachAuth = false;
         }
