@@ -90,6 +90,11 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         }
       }
 
+      const isProtocolRelative = endpoint.startsWith("//");
+      if (isProtocolRelative) {
+        throw new Error("Invalid endpoint: protocol-relative URL is not allowed");
+      }
+
       const isAbsoluteEndpoint = /^https?:\/\//i.test(endpoint);
       const safeEndpoint = isAbsoluteEndpoint
         ? endpoint
@@ -100,16 +105,19 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       const base = API_BASE === "/" ? "" : API_BASE;
       const url = isAbsoluteEndpoint ? safeEndpoint : `${base}${safeEndpoint}`;
 
-      // 認証トークンがある場合は追加（クロスオリジン絶対URLには付与しない：トークン流出対策）
+      // 認証トークンがある場合は追加（最終URLが同一オリジンのときのみ：トークン流出対策）
       const token = getAuthToken();
 
-      let shouldAttachAuth = !isAbsoluteEndpoint;
-      if (isAbsoluteEndpoint && typeof window !== "undefined") {
+      let shouldAttachAuth = false;
+      if (typeof window !== "undefined") {
         try {
-          shouldAttachAuth = new URL(endpoint).origin === window.location.origin;
+          shouldAttachAuth = new URL(url, window.location.href).origin === window.location.origin;
         } catch {
           shouldAttachAuth = false;
         }
+      } else {
+        // SSR等: 原則付与しない（必要なら呼び出し側で同一オリジンのみ渡す）
+        shouldAttachAuth = false;
       }
 
       if (token && shouldAttachAuth) {
