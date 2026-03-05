@@ -88,6 +88,14 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         }
       }
 
+      // デフォルトの Accept を付与（既存指定があれば尊重）
+      const hasAccept = Object.keys(headers).some(
+        (k) => k.toLowerCase() === "accept",
+      );
+      if (!hasAccept) {
+        headers["Accept"] = "application/json";
+      }
+
       // ボディがある場合のみデフォルトの Content-Type を付与（既存指定があれば尊重）
       const hasContentType = Object.keys(headers).some(
         (k) => k.toLowerCase() === "content-type",

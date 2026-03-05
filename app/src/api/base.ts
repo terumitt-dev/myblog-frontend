@@ -7,12 +7,11 @@ export const getApiBase = (): string => {
   const baseUrl = apiBase || "/api";
 
   // 相対パスは常に `/` 始まりに正規化（例: "api" -> "/api"）
-  const normalizedBaseUrl =
-    baseUrl.startsWith("http://") || baseUrl.startsWith("https://")
+  const normalizedBaseUrl = /^(https?:)\/\//i.test(baseUrl)
+    ? baseUrl
+    : baseUrl.startsWith("/")
       ? baseUrl
-      : baseUrl.startsWith("/")
-        ? baseUrl
-        : `/${baseUrl}`;
+      : `/${baseUrl}`;
 
   // 本番ビルド時は環境変数必須（空白のみもNG）
   if (import.meta.env.PROD && !apiBase) {
@@ -21,11 +20,11 @@ export const getApiBase = (): string => {
 
   // 本番ビルド時は「絶対URLならHTTPS必須」。相対パス（同一オリジン想定）は許可する。
   if (import.meta.env.PROD) {
-    if (normalizedBaseUrl.startsWith("http://")) {
+    if (/^http:\/\//i.test(normalizedBaseUrl)) {
       throw new Error("VITE_API_BASE_URL must use HTTPS in production");
     }
     const isRelative = normalizedBaseUrl.startsWith("/");
-    const isHttpsAbsolute = normalizedBaseUrl.startsWith("https://");
+    const isHttpsAbsolute = /^https:\/\//i.test(normalizedBaseUrl);
     if (!isRelative && !isHttpsAbsolute) {
       throw new Error(
         "VITE_API_BASE_URL must be an absolute https URL or a relative path in production",
