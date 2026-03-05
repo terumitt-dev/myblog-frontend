@@ -202,8 +202,14 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           return { ok: true, data: null };
         }
 
-        // 成功時にJSONでない本文が返るケース（text/plain 等）を許容する
-        return { ok: true, data: raw as unknown as T };
+        // 成功時にJSONでない本文が返るケースは異常系として扱う
+        const detail = raw.trim().slice(0, 500);
+        return {
+          ok: false,
+          error: detail
+            ? `API Error: ${response.status} ${response.statusText} - Invalid JSON response: ${detail}`
+            : `API Error: ${response.status} ${response.statusText} - Invalid JSON response`,
+        };
       }
 
       if (!response.ok) {
