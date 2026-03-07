@@ -385,8 +385,9 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         headers,
       });
 
-      const authToken =
-        response.headers.get("Authorization")?.replace(/^Bearer\s+/i, "").trim() || null;
+      const authHeader = response.headers.get("Authorization")?.trim() ?? "";
+      const m = authHeader.match(/^Bearer\s+(.+)$/i);
+      const authToken = m ? m[1].trim() : null;
 
       // 204 No Content や空ボディの場合は json() を呼ばない
       if (!hasJsonBody(response)) {
