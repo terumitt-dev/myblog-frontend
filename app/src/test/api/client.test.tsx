@@ -183,17 +183,23 @@ describe("認証API (useAuthenticatedApi)", () => {
 
   describe("レスポンス処理", () => {
     it("非JSON成功レスポンスをエラーとして返す", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        statusText: "OK",
-        headers: {
-          get: (key: string) => key.toLowerCase() === "content-type" ? "text/plain" : null,
-        },
-        text: async () => "plain text response",
-        json: async () => { throw new Error("Not JSON"); },
-        clone: function() { return this; },
-      });
+      mockFetch.mockResolvedValueOnce((() => {
+        const make = () => ({
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          headers: {
+            get: (key: string) =>
+              key.toLowerCase() === "content-type" ? "text/plain" : null,
+          },
+          text: async () => "plain text response",
+          json: async () => {
+            throw new Error("Not JSON");
+          },
+          clone: () => make(),
+        });
+        return make();
+      })());
 
       const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
       const response = await result.current.blogsApi.getAll();

@@ -157,11 +157,19 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       }
 
       // 絶対URLは同一オリジンのみに制限（意図しない外部通信を防ぐ）
-      if (isAbsoluteEndpoint && typeof window !== "undefined") {
-        const allowedOrigin = /^https?:\/\//i.test(API_BASE)
-          ? new URL(API_BASE).origin
-          : window.location.origin;
-        if (new URL(endpoint).origin !== allowedOrigin) {
+      if (isAbsoluteEndpoint) {
+        const allowedOrigin = (() => {
+          // API_BASE が絶対URLなら window が無くても判定可能
+          if (/^https?:\/\//i.test(API_BASE)) return new URL(API_BASE).origin;
+
+          // API_BASE が相対のときはブラウザオリジンに束縛する
+          if (typeof window !== "undefined") return window.location.origin;
+
+          // SSR等では「許可オリジン」を確定できないため絶対URL自体を禁止
+          return null;
+        })();
+
+        if (!allowedOrigin || new URL(endpoint).origin !== allowedOrigin) {
           throw new Error("Invalid endpoint: cross-origin absolute URL is not allowed");
         }
       }
@@ -177,9 +185,14 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           : `/${endpoint}`;
 
       // パストラバーサル/正規化による意図しない送信を防ぐ
-      const pathForCheck = isAbsoluteEndpoint
-        ? new URL(safeEndpoint).pathname
-        : safeEndpoint;
+      const pathForCheck = (() => {
+        if (!isAbsoluteEndpoint) return safeEndpoint;
+
+        // URLパーサが正規化する前のパスを文字列として抽出して検査に使う
+        // 例: "https://x/api/../admin?x=1" -> "/api/../admin"
+        const m = safeEndpoint.match(/^[a-z]+:\/\/[^\/]+(\/[^?#]*)/i);
+        return m?.[1] ?? "/";
+      })();
 
       const decodedPathForCheck = (() => {
         try {
