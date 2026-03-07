@@ -79,11 +79,17 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
 
       let body = options?.body;
 
+      const isFormData =
+        typeof FormData !== "undefined" && body instanceof FormData;
+
+      // FormData では Content-Type を指定しない（boundary をブラウザに任せる）
+      if (isFormData && headers.has("Content-Type")) {
+        headers.delete("Content-Type");
+      }
+
       // ボディがある場合のみデフォルトの Content-Type を付与（既存指定があれば尊重）
       const hasContentType = headers.has("Content-Type");
       const hasBody = body != null;
-
-      const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
 
       const isUrlEncoded =
         typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams;
@@ -169,6 +175,15 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         : endpoint.startsWith("/")
           ? endpoint
           : `/${endpoint}`;
+
+      // パストラバーサル/正規化による意図しない送信を防ぐ
+      const pathForCheck = isAbsoluteEndpoint
+        ? new URL(safeEndpoint).pathname
+        : safeEndpoint;
+
+      if (/(^|\/)\.\.(\/|$)/.test(pathForCheck) || /(^|\/)\.(\/|$)/.test(pathForCheck)) {
+        throw new Error("Invalid endpoint: dot segments are not allowed");
+      }
 
       const base = API_BASE === "/" ? "" : API_BASE;
 
