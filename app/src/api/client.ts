@@ -131,7 +131,11 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         !(body instanceof ArrayBuffer) &&
         !isArrayBufferView &&
         !isReadableStream &&
-        (Array.isArray(body) || Object.getPrototypeOf(body) === Object.prototype);
+        (() => {
+          if (Array.isArray(body)) return true;
+          const proto = Object.getPrototypeOf(body);
+          return proto === Object.prototype || proto === null;
+        })();
 
       if (hasBody && !hasContentType && !isFormData) {
         if (isUrlEncoded) {
@@ -320,15 +324,21 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           return { ok: true, data: null };
         }
 
-        // JSON の可能性がある場合のみパースする
+        const accept = headers.get("Accept") ?? "";
+        const expectsJson = /\bjson\b/i.test(accept) || accept === "";
+
+        // JSON を期待する場合のみパース失敗をエラー化する
         try {
           return { ok: true, data: JSON.parse(text) as T };
         } catch (e) {
+          if (!expectsJson) {
+            return { ok: true, data: text as unknown as T };
+          }
+
           if (import.meta.env.DEV) {
             console.warn("Non-JSON success response:", text.slice(0, 200), e);
           }
 
-          // Accept: application/json を付与しているのに非JSONが返ってきた場合はエラー
           const detail = text.trim().slice(0, 500);
           return {
             ok: false,
