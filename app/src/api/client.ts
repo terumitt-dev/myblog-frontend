@@ -5,10 +5,9 @@ import { API_BASE } from "@/api/base";
 
 // 成功時の型とエラー時の型を明確に分離
 // ok プロパティで成功/失敗を明確に判別可能
-export type ApiResponse<T> = 
-  | { ok: true; data: T; error?: never }
-  | { ok: true; data: null; error?: never }  // 空レスポンス（204など）
-  | { ok: false; data?: never; error: string };
+export type ApiResponse<T> =
+  | { ok: true; data: T | null; error?: never; meta?: { authToken?: string | null } }
+  | { ok: false; data?: never; error: string; meta?: { authToken?: string | null } };
 
 interface BlogCreateData {
   title: string;
@@ -335,6 +334,9 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         headers,
       });
 
+      const authToken =
+        response.headers.get("Authorization")?.replace(/^Bearer\s+/i, "").trim() || null;
+
       // 204 No Content や空ボディの場合は json() を呼ばない
       if (!hasJsonBody(response)) {
         const text = await response.text();
@@ -346,12 +348,13 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
             error: detail
               ? `API Error: ${response.status} ${response.statusText} - ${detail}`
               : `API Error: ${response.status} ${response.statusText}`,
+            meta: { authToken },
           };
         }
 
         // 空ボディは成功（204等）
         if (!text.trim()) {
-          return { ok: true, data: null };
+          return { ok: true, data: null, meta: { authToken } };
         }
 
         const accept = headers.get("Accept") ?? "";
@@ -359,10 +362,10 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
 
         // JSON を期待する場合のみパース失敗をエラー化する
         try {
-          return { ok: true, data: JSON.parse(text) as T };
+          return { ok: true, data: JSON.parse(text) as T, meta: { authToken } };
         } catch (e) {
           if (!expectsJson) {
-            return { ok: true, data: text as unknown as T };
+            return { ok: true, data: text as unknown as T, meta: { authToken } };
           }
 
           if (import.meta.env.DEV) {
@@ -375,6 +378,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
             error: detail
               ? `API Error: ${response.status} ${response.statusText} - Unexpected non-JSON response: ${detail}`
               : `API Error: ${response.status} ${response.statusText} - Unexpected non-JSON response`,
+            meta: { authToken },
           };
         }
       }
@@ -404,6 +408,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
             error: detail
               ? `API Error: ${response.status} ${response.statusText} - ${detail}`
               : `API Error: ${response.status} ${response.statusText}`,
+            meta: { authToken },
           };
         }
 
@@ -412,7 +417,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         const isTrulyEmpty = response.status === 204 || !raw.trim();
 
         if (isTrulyEmpty) {
-          return { ok: true, data: null };
+          return { ok: true, data: null, meta: { authToken } };
         }
 
         // 成功時にJSONでない本文が返るケースは異常系として扱う
@@ -422,6 +427,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           error: detail
             ? `API Error: ${response.status} ${response.statusText} - Invalid JSON response: ${detail}`
             : `API Error: ${response.status} ${response.statusText} - Invalid JSON response`,
+          meta: { authToken },
         };
       }
 
@@ -441,18 +447,21 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
                 ? JSON.stringify(rawMsg)
                 : "";
 
+        const trimmedMsg = msg.trim().slice(0, 500);
+
         return {
           ok: false,
-          error: msg
-            ? `API Error: ${response.status} ${response.statusText} - ${msg}`
+          error: trimmedMsg
+            ? `API Error: ${response.status} ${response.statusText} - ${trimmedMsg}`
             : `API Error: ${response.status} ${response.statusText}`,
+          meta: { authToken },
         };
       }
 
-      return { ok: true, data };
+      return { ok: true, data, meta: { authToken } };
     } catch (error) {
       console.error("API Error:", error);
-      return { ok: false, error: "Network Error" };
+      return { ok: false, error: "Network Error", meta: { authToken: null } };
     }
   };
 };

@@ -55,16 +55,17 @@ const SignUp = () => {
         return;
       }
 
-      const status = signUpResponse.data?.status;
-      const message = signUpResponse.data?.message;
-
-      if (status && status !== "success") {
-        setError(message || "サインアップに失敗しました。");
+      // 204など「成功だがボディ無し」を許容
+      if (signUpResponse.data == null) {
+        navigate("/login");
         return;
       }
 
-      if (signUpResponse.data == null) {
-        setError("サインアップ応答が不正です。");
+      const status = signUpResponse.data.status;
+      const message = signUpResponse.data.message;
+
+      if (status && status !== "success") {
+        setError(message || "サインアップに失敗しました。");
         return;
       }
 
