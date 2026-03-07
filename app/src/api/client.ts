@@ -102,13 +102,22 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         }
       })();
 
+      const isArrayBufferView =
+        typeof ArrayBuffer !== "undefined" && ArrayBuffer.isView(body as any);
+
+      const isReadableStream =
+        typeof ReadableStream !== "undefined" && body instanceof ReadableStream;
+
       const isPlainObjectBody =
+        body != null &&
         typeof body === "object" &&
-        body !== null &&
         !isFormData &&
         !isUrlEncoded &&
         !(body instanceof Blob) &&
-        !(body instanceof ArrayBuffer);
+        !(body instanceof ArrayBuffer) &&
+        !isArrayBufferView &&
+        !isReadableStream &&
+        (Array.isArray(body) || Object.getPrototypeOf(body) === Object.prototype);
 
       if (hasBody && !hasContentType && !isFormData) {
         if (isUrlEncoded) {
@@ -188,9 +197,15 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         }
 
         // 相対パスの場合は単純結合（すでに /api 付きなら尊重）
-        return base && (safeEndpoint === base || safeEndpoint.startsWith(`${base}/`))
-          ? safeEndpoint
-          : `${base}${safeEndpoint}`;
+        if (!base) return safeEndpoint;
+
+        const alreadyHasBase =
+          safeEndpoint === base ||
+          safeEndpoint.startsWith(`${base}/`) ||
+          safeEndpoint.startsWith(`${base}?`) ||
+          safeEndpoint.startsWith(`${base}#`);
+
+        return alreadyHasBase ? safeEndpoint : `${base}${safeEndpoint}`;
       })();
 
       // 認証トークンがある場合は追加（設定されたAPIオリジン＆パスのときのみ：トークン流出対策）
