@@ -136,6 +136,20 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           return proto === Object.prototype || proto === null;
         })();
 
+      const isUnsupportedPrimitiveBody =
+        body != null &&
+        (typeof body === "number" ||
+          typeof body === "boolean" ||
+          typeof body === "bigint" ||
+          typeof body === "symbol" ||
+          typeof body === "function");
+
+      if (isUnsupportedPrimitiveBody) {
+        throw new Error(
+          "Invalid request body: unsupported primitive type (use JSON/string, FormData, URLSearchParams, Blob, ArrayBuffer, etc.)",
+        );
+      }
+
       const isUnsupportedObjectBody =
         body != null &&
         typeof body === "object" &&
@@ -392,11 +406,26 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         const text = await response.text();
 
         if (!response.ok) {
-          const detail = text.trim().slice(0, 500);
+          let detail = text.trim();
+
+          // Content-Typeが非JSONでも、本文がJSONならメッセージ抽出を試みる
+          if (detail && /^\s*[\[{]/.test(detail)) {
+            try {
+              const parsed = JSON.parse(detail) as any;
+              const msg = parsed?.message ?? parsed?.error ?? parsed?.errors;
+              if (typeof msg === "string") detail = msg;
+              else if (Array.isArray(msg)) detail = msg.join(", ");
+              else if (msg != null) detail = String(msg);
+            } catch {
+              // noop
+            }
+          }
+
+          const clipped = detail.slice(0, 500);
           return {
             ok: false,
-            error: detail
-              ? `API Error: ${response.status} ${response.statusText} - ${detail}`
+            error: clipped
+              ? `API Error: ${response.status} ${response.statusText} - ${clipped}`
               : `API Error: ${response.status} ${response.statusText}`,
             meta: { authToken },
           };
@@ -470,7 +499,14 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         }
 
         // 成功時は「本当に空」かを実体で判定（clone不可なら詳細判定は最小限にする）
-        const raw = clonedResponse ? await clonedResponse.text() : "";
+        let raw = "";
+        if (clonedResponse) {
+          try {
+            raw = await clonedResponse.text();
+          } catch {
+            raw = "";
+          }
+        }
         const isTrulyEmpty = response.status === 204 || !raw.trim();
 
         if (isTrulyEmpty) {
