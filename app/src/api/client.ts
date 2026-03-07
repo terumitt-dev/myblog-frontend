@@ -149,6 +149,12 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       }
 
       if (isPlainObjectBody) {
+        const ct = headers.get("Content-Type") ?? "";
+        if (ct && !/\bjson\b/i.test(ct)) {
+          throw new Error(
+            "Invalid request body: plain object requires JSON Content-Type (or pass URLSearchParams/FormData/string)",
+          );
+        }
         body = JSON.stringify(body);
       }
 
@@ -316,7 +322,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         shouldAttachAuth = false;
       }
 
-      if (!shouldAttachAuth && headers.has("Authorization")) {
+      if (typeof window !== "undefined" && !shouldAttachAuth && headers.has("Authorization")) {
         headers.delete("Authorization");
       }
       if (token && shouldAttachAuth && !headers.has("Authorization")) {
