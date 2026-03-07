@@ -1,12 +1,21 @@
 // app/src/test/api/client.test.ts
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { AuthProvider } from "@/context/AuthContext";
 import { useAuthenticatedApi } from "@/api/client";
 
 // fetch のモック
 const mockFetch = vi.fn();
-(globalThis as any).fetch = mockFetch;
+
+beforeEach(() => {
+  vi.unstubAllGlobals();
+  mockFetch.mockReset();
+  vi.stubGlobal("fetch", mockFetch);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 // レスポンスモックのヘルパー（headers付き）
 const createMockResponse = (body: any, status = 200) => {
