@@ -98,6 +98,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { success: false, error: "invalid_credentials" };
       } catch (error) {
         console.error("Authentication error:", error);
+        setIsLoggedIn(false);
+        setToken(null);
         return { success: false, error: "network_error" };
       }
     },

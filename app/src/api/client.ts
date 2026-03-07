@@ -77,19 +77,20 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         headers.set("Accept", "application/json");
       }
 
+      let body = options?.body;
+
       // ボディがある場合のみデフォルトの Content-Type を付与（既存指定があれば尊重）
       const hasContentType = headers.has("Content-Type");
-      const hasBody = options?.body != null;
-      const isFormData =
-        typeof FormData !== "undefined" && options?.body instanceof FormData;
+      const hasBody = body != null;
+
+      const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
 
       const isUrlEncoded =
-        typeof URLSearchParams !== "undefined" &&
-        options?.body instanceof URLSearchParams;
+        typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams;
 
       // JSON を自動付与するのは「JSONとしてパースできる文字列」のみに限定（Blob等は上書きしない）
-      const isStringBody = typeof options?.body === "string";
-      const bodyText = isStringBody ? (options!.body as string) : "";
+      const isStringBody = typeof body === "string";
+      const bodyText = isStringBody ? (body as string) : "";
 
       const isParsableJsonString = (() => {
         if (!isStringBody) return false;
@@ -101,15 +102,31 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         }
       })();
 
+      const isPlainObjectBody =
+        typeof body === "object" &&
+        body !== null &&
+        !isFormData &&
+        !isUrlEncoded &&
+        !(body instanceof Blob) &&
+        !(body instanceof ArrayBuffer);
+
       if (hasBody && !hasContentType && !isFormData) {
         if (isUrlEncoded) {
           headers.set(
             "Content-Type",
             "application/x-www-form-urlencoded;charset=UTF-8",
           );
-        } else if (isParsableJsonString) {
+        } else if (isParsableJsonString || isPlainObjectBody) {
           headers.set("Content-Type", "application/json");
         }
+      }
+
+      if (isPlainObjectBody) {
+        body = JSON.stringify(body);
+      }
+
+      if (/[\\\r\n]/.test(endpoint)) {
+        throw new Error("Invalid endpoint: backslashes or newlines are not allowed");
       }
 
       const isProtocolRelative = endpoint.startsWith("//");
@@ -210,6 +227,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
 
       const response = await fetch(url, {
         ...options,
+        body,
         headers,
       });
 
