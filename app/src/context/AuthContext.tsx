@@ -38,11 +38,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       try {
-        // Rails API経由での認証
+        // Rails API経由での認証（credentials追加でCookie送信を有効化）
         const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
         const response = await fetch(`${base}/auth/sign_in`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include", // Cookie送信を有効化
           body: JSON.stringify({ admin: { email: normalizedEmail, password } }),
         });
 
@@ -108,7 +109,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = useCallback(async () => {
     try {
-      // ログアウトAPI呼び出し（トークン付き）
+      // ログアウトAPI呼び出し（トークン付き、credentials追加）
       if (token) {
         const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
         await fetch(`${base}/auth/sign_out`, {
@@ -116,6 +117,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          credentials: "include", // Cookie送信を有効化
         });
       }
     } finally {

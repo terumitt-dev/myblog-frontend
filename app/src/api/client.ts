@@ -174,19 +174,30 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         body = JSON.stringify(body);
       }
 
-      if (/[\\\r\n]/.test(endpoint)) {
+      const endpointTrimmed = endpoint.trim();
+      if (endpointTrimmed !== endpoint) {
+        throw new Error("Invalid endpoint: leading/trailing whitespace is not allowed");
+      }
+      if (!endpointTrimmed) {
+        throw new Error("Invalid endpoint: endpoint must not be empty");
+      }
+      if (endpointTrimmed.startsWith("#")) {
+        throw new Error("Invalid endpoint: hash-only endpoint is not allowed");
+      }
+
+      if (/[\\\r\n]/.test(endpointTrimmed)) {
         throw new Error("Invalid endpoint: backslashes or newlines are not allowed");
       }
 
-      const isProtocolRelative = endpoint.startsWith("//");
+      const isProtocolRelative = endpointTrimmed.startsWith("//");
       if (isProtocolRelative) {
         throw new Error("Invalid endpoint: protocol-relative URL is not allowed");
       }
 
-      const isAbsoluteEndpoint = /^https?:\/\//i.test(endpoint);
+      const isAbsoluteEndpoint = /^https?:\/\//i.test(endpointTrimmed);
 
       // 本番での平文HTTPへの誤送信を防止
-      if (import.meta.env.PROD && /^http:\/\//i.test(endpoint)) {
+      if (import.meta.env.PROD && /^http:\/\//i.test(endpointTrimmed)) {
         throw new Error("Invalid endpoint: HTTP is not allowed in production");
       }
 
@@ -205,7 +216,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
 
         let parsed: URL;
         try {
-          parsed = new URL(endpoint);
+          parsed = new URL(endpointTrimmed);
         } catch {
           throw new Error("Invalid endpoint: malformed absolute URL");
         }
@@ -229,15 +240,15 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         }
       }
 
-      if (!isAbsoluteEndpoint && endpoint.startsWith("?")) {
+      if (!isAbsoluteEndpoint && endpointTrimmed.startsWith("?")) {
         throw new Error("Invalid endpoint: path is required before query string");
       }
 
       const safeEndpoint = isAbsoluteEndpoint
-        ? endpoint
-        : endpoint.startsWith("/")
-          ? endpoint
-          : `/${endpoint}`;
+        ? endpointTrimmed
+        : endpointTrimmed.startsWith("/")
+          ? endpointTrimmed
+          : `/${endpointTrimmed}`;
 
       // パストラバーサル/正規化による意図しない送信を防ぐ
       const pathForCheck = (() => {
