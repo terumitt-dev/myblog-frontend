@@ -108,15 +108,24 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         typeof URLSearchParams !== "undefined" &&
         options?.body instanceof URLSearchParams;
 
-      // JSON を自動付与するのは「JSON文字列」のみに限定（Blob等は上書きしない）
+      // JSON を自動付与するのは「JSONとしてパースできる文字列」のみに限定（Blob等は上書きしない）
       const isStringBody = typeof options?.body === "string";
       const bodyText = isStringBody ? (options!.body as string) : "";
-      const looksLikeJson = isStringBody && /^\s*[\[{]/.test(bodyText);
+
+      const isParsableJsonString = (() => {
+        if (!isStringBody) return false;
+        try {
+          JSON.parse(bodyText);
+          return true;
+        } catch {
+          return false;
+        }
+      })();
 
       if (hasBody && !hasContentType && !isFormData) {
         if (isUrlEncoded) {
           headers["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8";
-        } else if (looksLikeJson) {
+        } else if (isParsableJsonString) {
           headers["Content-Type"] = "application/json";
         }
       }
@@ -181,18 +190,26 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           : `${base}${safeEndpoint}`;
       })();
 
-      // 認証トークンがある場合は追加（設定されたAPIオリジンのときのみ：トークン流出対策）
+      // 認証トークンがある場合は追加（設定されたAPIオリジン＆パスのときのみ：トークン流出対策）
       const token = getAuthToken();
 
       let shouldAttachAuth = false;
       if (typeof window !== "undefined") {
         try {
           const resolvedUrl = new URL(url, window.location.href);
-          const allowedOrigin = /^https?:\/\//i.test(API_BASE)
-            ? new URL(API_BASE).origin
-            : window.location.origin;
+          const allowedBaseUrl = /^https?:\/\//i.test(API_BASE)
+            ? new URL(API_BASE)
+            : new URL(API_BASE, window.location.origin);
 
-          shouldAttachAuth = resolvedUrl.origin === allowedOrigin;
+          const allowedOrigin = allowedBaseUrl.origin;
+
+          const allowedPath = allowedBaseUrl.pathname.replace(/\/+$/, "") || "/";
+          const resolvedPath = resolvedUrl.pathname;
+
+          const pathAllowed =
+            allowedPath === "/" ? true : resolvedPath === allowedPath || resolvedPath.startsWith(`${allowedPath}/`);
+
+          shouldAttachAuth = resolvedUrl.origin === allowedOrigin && pathAllowed;
         } catch {
           shouldAttachAuth = false;
         }
