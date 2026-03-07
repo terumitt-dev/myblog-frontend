@@ -181,7 +181,26 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         ? new URL(safeEndpoint).pathname
         : safeEndpoint;
 
-      if (/(^|\/)\.\.(\/|$)/.test(pathForCheck) || /(^|\/)\.(\/|$)/.test(pathForCheck)) {
+      const decodedPathForCheck = (() => {
+        try {
+          return decodeURIComponent(pathForCheck);
+        } catch {
+          return pathForCheck;
+        }
+      })();
+
+      const hasDotSegments = (p: string) =>
+        /(^|\/)\.\.(\/|$)/.test(p) || /(^|\/)\.(\/|$)/.test(p);
+
+      // `%2e` / `%2e%2e` を含むセグメント（`%2f` は "/" 相当）
+      const hasEncodedDotSegments = (p: string) =>
+        /(^|\/|%2f)%2e(%2e)?(\/|%2f|$)/i.test(p);
+
+      if (
+        hasDotSegments(pathForCheck) ||
+        hasDotSegments(decodedPathForCheck) ||
+        hasEncodedDotSegments(pathForCheck)
+      ) {
         throw new Error("Invalid endpoint: dot segments are not allowed");
       }
 

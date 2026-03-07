@@ -30,6 +30,27 @@ export const getApiBase = (): string => {
       ? baseUrl
       : `/${baseUrl}`;
 
+  // 相対パスのドットセグメントを禁止（誤設定/意図しないパス解決を防ぐ）
+  if (normalizedBaseUrl.startsWith("/")) {
+    const decoded = (() => {
+      try {
+        return decodeURIComponent(normalizedBaseUrl);
+      } catch {
+        return normalizedBaseUrl;
+      }
+    })();
+
+    const hasDotSegments =
+      /(^|\/)\.\.(\/|$)/.test(decoded) || /(^|\/)\.(\/|$)/.test(decoded);
+
+    const hasEncodedDotSegments =
+      /(^|\/|%2f)%2e(%2e)?(\/|%2f|$)/i.test(normalizedBaseUrl);
+
+    if (hasDotSegments || hasEncodedDotSegments) {
+      throw new Error("VITE_API_BASE_URL must not include dot segments");
+    }
+  }
+
   // 本番ビルド時: 明示設定が空文字/空白のみはNG（未設定なら同一オリジン相対パスを許容）
   const hasExplicitEnv = typeof raw === "string";
   if (import.meta.env.PROD && hasExplicitEnv && !apiBase) {
