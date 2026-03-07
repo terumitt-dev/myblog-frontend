@@ -49,7 +49,10 @@ const hasJsonBody = (response: Response): boolean => {
   }
 
   const contentLength = response.headers.get("Content-Length");
-  if (contentLength != null && Number(contentLength) <= 0) return false;
+  if (contentLength != null) {
+    const len = Number(contentLength);
+    if (Number.isFinite(len) && len <= 0) return false;
+  }
 
   const contentType = response.headers.get("Content-Type");
   if (contentType && /\bjson\b/i.test(contentType)) {
@@ -436,7 +439,12 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       }
 
       // レスポンスボディを先にクローン（json()失敗時のtext()取得のため）
-      const clonedResponse = response.clone();
+      let clonedResponse: Response | null = null;
+      try {
+        clonedResponse = response.clone();
+      } catch {
+        clonedResponse = null;
+      }
 
       let data;
       try {
@@ -449,10 +457,12 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         // エラー応答時は本文を可能な限り取り込んで返す
         if (!response.ok) {
           let detail = "";
-          try {
-            detail = (await clonedResponse.text()).trim().slice(0, 500);
-          } catch {
-            // noop
+          if (clonedResponse) {
+            try {
+              detail = (await clonedResponse.text()).trim().slice(0, 500);
+            } catch {
+              // noop
+            }
           }
 
           return {
@@ -464,8 +474,8 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           };
         }
 
-        // 成功時は「本当に空」かを実体で判定
-        const raw = await clonedResponse.text();
+        // 成功時は「本当に空」かを実体で判定（clone不可なら詳細判定は最小限にする）
+        const raw = clonedResponse ? await clonedResponse.text() : "";
         const isTrulyEmpty = response.status === 204 || !raw.trim();
 
         if (isTrulyEmpty) {
