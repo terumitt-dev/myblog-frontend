@@ -51,16 +51,12 @@ describe("認証API (useAuthenticatedApi)", () => {
         "admin-signup-password",
       );
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/auth/sign_up"),
-        expect.objectContaining({
-          method: "POST",
-          headers: expect.objectContaining({
-            "Content-Type": "application/json",
-          }),
-          body: expect.stringContaining("password_confirmation"),
-        }),
-      );
+      const callArgs = mockFetch.mock.calls[0];
+      expect(callArgs[0]).toContain("/auth/sign_up");
+      expect(callArgs[1].method).toBe("POST");
+      expect(callArgs[1].headers).toBeInstanceOf(Headers);
+      expect(callArgs[1].headers.get("Content-Type")).toBe("application/json");
+      expect(callArgs[1].body).toContain("password_confirmation");
     });
 
     it("パスワード確認フィールドが password_confirmation として送信される", async () => {
@@ -165,14 +161,10 @@ describe("認証API (useAuthenticatedApi)", () => {
         category: "Tech",
       });
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining("/admin/blogs"),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            "Content-Type": "application/json",
-          }),
-        }),
-      );
+      const callArgs = mockFetch.mock.calls[0];
+      expect(callArgs[0]).toContain("/admin/blogs");
+      expect(callArgs[1].headers).toBeInstanceOf(Headers);
+      expect(callArgs[1].headers.get("Content-Type")).toBe("application/json");
     });
 
     it("Accept: application/json ヘッダーをデフォルト付与する", async () => {
@@ -183,14 +175,9 @@ describe("認証API (useAuthenticatedApi)", () => {
       const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
       await result.current.blogsApi.getAll();
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            "Accept": "application/json",
-          }),
-        }),
-      );
+      const callArgs = mockFetch.mock.calls[0];
+      expect(callArgs[1].headers).toBeInstanceOf(Headers);
+      expect(callArgs[1].headers.get("Accept")).toBe("application/json");
     });
   });
 

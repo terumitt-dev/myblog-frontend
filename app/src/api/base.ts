@@ -15,6 +15,11 @@ export const getApiBase = (): string => {
     throw new Error("VITE_API_BASE_URL must not be a protocol-relative URL");
   }
 
+  // ベースURLにクエリ/ハッシュは含めない（全リクエストへの混入を防ぐ）
+  if (apiBase && /[?#]/.test(apiBase)) {
+    throw new Error("VITE_API_BASE_URL must not include query or hash");
+  }
+
   // 開発環境ではViteプロキシ等を利用できるよう相対パスにフォールバック
   const baseUrl = apiBase || "/api";
 

@@ -70,36 +70,15 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
   ): Promise<ApiResponse<T>> {
     try {
       // ヘッダーの準備
-      const headers: Record<string, string> = {};
-
-      // 既存のヘッダーをマージ
-      if (options?.headers) {
-        const existingHeaders = options.headers;
-        if (existingHeaders instanceof Headers) {
-          existingHeaders.forEach((value, key) => {
-            headers[key] = value;
-          });
-        } else if (Array.isArray(existingHeaders)) {
-          for (const [key, value] of existingHeaders) {
-            headers[key] = value;
-          }
-        } else {
-          Object.assign(headers, existingHeaders);
-        }
-      }
+      const headers = new Headers(options?.headers);
 
       // デフォルトの Accept を付与（既存指定があれば尊重）
-      const hasAccept = Object.keys(headers).some(
-        (k) => k.toLowerCase() === "accept",
-      );
-      if (!hasAccept) {
-        headers["Accept"] = "application/json";
+      if (!headers.has("Accept")) {
+        headers.set("Accept", "application/json");
       }
 
       // ボディがある場合のみデフォルトの Content-Type を付与（既存指定があれば尊重）
-      const hasContentType = Object.keys(headers).some(
-        (k) => k.toLowerCase() === "content-type",
-      );
+      const hasContentType = headers.has("Content-Type");
       const hasBody = options?.body != null;
       const isFormData =
         typeof FormData !== "undefined" && options?.body instanceof FormData;
@@ -124,9 +103,12 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
 
       if (hasBody && !hasContentType && !isFormData) {
         if (isUrlEncoded) {
-          headers["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8";
+          headers.set(
+            "Content-Type",
+            "application/x-www-form-urlencoded;charset=UTF-8",
+          );
         } else if (isParsableJsonString) {
-          headers["Content-Type"] = "application/json";
+          headers.set("Content-Type", "application/json");
         }
       }
 
@@ -222,12 +204,8 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         shouldAttachAuth = false;
       }
 
-      const hasAuthorization = Object.keys(headers).some(
-        (k) => k.toLowerCase() === "authorization",
-      );
-
-      if (token && shouldAttachAuth && !hasAuthorization) {
-        headers["Authorization"] = `Bearer ${token}`;
+      if (token && shouldAttachAuth && !headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${token}`);
       }
 
       const response = await fetch(url, {
