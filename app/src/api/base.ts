@@ -37,7 +37,12 @@ export const getApiBase = (): string => {
 
   // 絶対URLにユーザー情報（user:pass@）が含まれる設定は拒否（意図しない認証情報送出の防止）
   if (/^https?:\/\//i.test(normalizedBaseUrl)) {
-    const u = new URL(normalizedBaseUrl);
+    let u: URL;
+    try {
+      u = new URL(normalizedBaseUrl);
+    } catch {
+      throw new Error("VITE_API_BASE_URL must be a valid absolute http(s) URL");
+    }
     if (u.username || u.password) {
       throw new Error("VITE_API_BASE_URL must not include URL credentials");
     }

@@ -61,11 +61,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const authHeader = response.headers.get("Authorization");
         const headerToken = authHeader?.replace(/^Bearer\s+/i, "").trim() || null;
 
+        const rawText = await response.text();
         let data: any = null;
-        try {
-          data = await response.json();
-        } catch {
-          data = null;
+
+        if (rawText.trim()) {
+          try {
+            data = JSON.parse(rawText);
+          } catch {
+            data = null;
+          }
         }
 
         const bodyToken = typeof data?.token === "string" ? data.token : null;
