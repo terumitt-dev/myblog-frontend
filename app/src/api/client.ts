@@ -122,12 +122,14 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       const isReadableStream =
         typeof ReadableStream !== "undefined" && body instanceof ReadableStream;
 
+      const isBlob = typeof Blob !== "undefined" && body instanceof Blob;
+
       const isPlainObjectBody =
         body != null &&
         typeof body === "object" &&
         !isFormData &&
         !isUrlEncoded &&
-        !(body instanceof Blob) &&
+        !isBlob &&
         !(body instanceof ArrayBuffer) &&
         !isArrayBufferView &&
         !isReadableStream &&
@@ -143,7 +145,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         !isPlainObjectBody &&
         !isFormData &&
         !isUrlEncoded &&
-        !(body instanceof Blob) &&
+        !isBlob &&
         !(body instanceof ArrayBuffer) &&
         !isArrayBufferView &&
         !isReadableStream;
@@ -253,7 +255,10 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
 
       // パストラバーサル/正規化による意図しない送信を防ぐ
       const pathForCheck = (() => {
-        if (!isAbsoluteEndpoint) return safeEndpoint;
+        if (!isAbsoluteEndpoint) {
+          // 相対URLはパス部分のみを抽出（クエリ/ハッシュは検査対象外にする）
+          return safeEndpoint.split(/[?#]/, 1)[0] || "/";
+        }
 
         // URLパーサが正規化する前のパスを文字列として抽出して検査に使う
         // 例: "https://x/api/../admin?x=1" -> "/api/../admin"
