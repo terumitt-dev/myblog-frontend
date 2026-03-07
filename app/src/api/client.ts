@@ -117,16 +117,23 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       }
 
       const isAbsoluteEndpoint = /^https?:\/\//i.test(endpoint);
+
+      if (!isAbsoluteEndpoint && endpoint.startsWith("?")) {
+        throw new Error("Invalid endpoint: path is required before query string");
+      }
+
       const safeEndpoint = isAbsoluteEndpoint
         ? endpoint
-        : endpoint.startsWith("?")
+        : endpoint.startsWith("/")
           ? endpoint
-          : endpoint.startsWith("/")
-            ? endpoint
-            : `/${endpoint}`;
+          : `/${endpoint}`;
 
       const base = API_BASE === "/" ? "" : API_BASE;
-      const url = isAbsoluteEndpoint ? safeEndpoint : `${base}${safeEndpoint}`;
+      const url = isAbsoluteEndpoint
+        ? safeEndpoint
+        : base && (safeEndpoint === base || safeEndpoint.startsWith(`${base}/`))
+          ? safeEndpoint
+          : `${base}${safeEndpoint}`;
 
       // 認証トークンがある場合は追加（設定されたAPIオリジンのときのみ：トークン流出対策）
       const token = getAuthToken();
