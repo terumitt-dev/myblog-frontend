@@ -136,6 +136,23 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           return proto === Object.prototype || proto === null;
         })();
 
+      const isUnsupportedObjectBody =
+        body != null &&
+        typeof body === "object" &&
+        !isPlainObjectBody &&
+        !isFormData &&
+        !isUrlEncoded &&
+        !(body instanceof Blob) &&
+        !(body instanceof ArrayBuffer) &&
+        !isArrayBufferView &&
+        !isReadableStream;
+
+      if (isUnsupportedObjectBody) {
+        throw new Error(
+          "Invalid request body: unsupported BodyInit type (use JSON/string, FormData, URLSearchParams, Blob, ArrayBuffer, etc.)",
+        );
+      }
+
       if (hasBody && !hasContentType && !isFormData) {
         if (isUrlEncoded) {
           headers.set(
@@ -461,7 +478,13 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       return { ok: true, data, meta: { authToken } };
     } catch (error) {
       console.error("API Error:", error);
-      return { ok: false, error: "Network Error", meta: { authToken: null } };
+
+      const message =
+        error instanceof Error
+          ? (import.meta.env.DEV ? error.message : "Network Error")
+          : "Network Error";
+
+      return { ok: false, error: message, meta: { authToken: null } };
     }
   };
 };
