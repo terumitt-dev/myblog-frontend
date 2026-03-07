@@ -128,6 +128,21 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
 
       const isAbsoluteEndpoint = /^https?:\/\//i.test(endpoint);
 
+      // 本番での平文HTTPへの誤送信を防止
+      if (import.meta.env.PROD && /^http:\/\//i.test(endpoint)) {
+        throw new Error("Invalid endpoint: HTTP is not allowed in production");
+      }
+
+      // 絶対URLは同一オリジンのみに制限（意図しない外部通信を防ぐ）
+      if (isAbsoluteEndpoint && typeof window !== "undefined") {
+        const allowedOrigin = /^https?:\/\//i.test(API_BASE)
+          ? new URL(API_BASE).origin
+          : window.location.origin;
+        if (new URL(endpoint).origin !== allowedOrigin) {
+          throw new Error("Invalid endpoint: cross-origin absolute URL is not allowed");
+        }
+      }
+
       if (!isAbsoluteEndpoint && endpoint.startsWith("?")) {
         throw new Error("Invalid endpoint: path is required before query string");
       }

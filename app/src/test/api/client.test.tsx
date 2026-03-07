@@ -151,4 +151,88 @@ describe("認証API (useAuthenticatedApi)", () => {
       );
     });
   });
+
+  describe("ヘッダー処理", () => {
+    it("JSON文字列のボディに Content-Type: application/json を付与する", async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ status: "success", data: {} })
+      );
+
+      const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
+      await result.current.blogsApi.create({
+        title: "Test",
+        content: "Content",
+        category: "Tech",
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/admin/blogs"),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            "Content-Type": "application/json",
+          }),
+        }),
+      );
+    });
+
+    it("Accept: application/json ヘッダーをデフォルト付与する", async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ status: "success", data: [] })
+      );
+
+      const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
+      await result.current.blogsApi.getAll();
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            "Accept": "application/json",
+          }),
+        }),
+      );
+    });
+  });
+
+  describe("レスポンス処理", () => {
+    it("非JSON成功レスポンスをエラーとして返す", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: {
+          get: (key: string) => key.toLowerCase() === "content-type" ? "text/plain" : null,
+        },
+        text: async () => "plain text response",
+        json: async () => { throw new Error("Not JSON"); },
+        clone: function() { return this; },
+      });
+
+      const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
+      const response = await result.current.blogsApi.getAll();
+
+      expect(response.ok).toBe(false);
+      expect(response.error).toContain("Unexpected non-JSON response");
+    });
+
+    it("空ボディの成功レスポンス（204）を正常に処理する", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        statusText: "No Content",
+        headers: {
+          get: () => null,
+        },
+        text: async () => "",
+        json: async () => { throw new Error("No content"); },
+        clone: function() { return this; },
+      });
+
+      const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
+      const response = await result.current.blogsApi.delete(1);
+
+      expect(response.ok).toBe(true);
+      expect(response.data).toBeNull();
+    });
+  });
 });

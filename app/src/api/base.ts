@@ -3,6 +3,13 @@ export const getApiBase = (): string => {
   const raw = import.meta.env.VITE_API_BASE_URL;
   const apiBase = typeof raw === "string" ? raw.trim() : "";
 
+  // `ftp://...` 等の誤設定を相対パス扱いにしない（意図しないパスへの通信を防ぐ）
+  if (/:\/\//.test(apiBase) && !/^(https?:)\/\//i.test(apiBase)) {
+    throw new Error(
+      "VITE_API_BASE_URL must be an absolute http(s) URL or a relative path",
+    );
+  }
+
   // `//example.com` のようなプロトコル相対URLは外部送信になり得るため禁止
   if (/^\/\//.test(apiBase)) {
     throw new Error("VITE_API_BASE_URL must not be a protocol-relative URL");
