@@ -313,32 +313,39 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       // 認証トークンがある場合は追加（設定されたAPIオリジン＆パスのときのみ：トークン流出対策）
       const token = getAuthToken();
 
-      let shouldAttachAuth = false;
-      if (typeof window !== "undefined") {
+      const computeShouldAttachAuth = (): boolean => {
         try {
-          const resolvedUrl = new URL(url, window.location.href);
           const allowedBaseUrl = /^https?:\/\//i.test(API_BASE)
             ? new URL(API_BASE)
-            : new URL(API_BASE, window.location.origin);
+            : typeof window !== "undefined"
+              ? new URL(API_BASE, window.location.origin)
+              : null;
 
-          const allowedOrigin = allowedBaseUrl.origin;
+          if (!allowedBaseUrl) return false;
+
+          const resolvedUrl =
+            typeof window !== "undefined"
+              ? new URL(url, window.location.href)
+              : new URL(url);
 
           const allowedPath = allowedBaseUrl.pathname.replace(/\/+$/, "") || "/";
           const resolvedPath = resolvedUrl.pathname;
 
           const pathAllowed =
-            allowedPath === "/" ? true : resolvedPath === allowedPath || resolvedPath.startsWith(`${allowedPath}/`);
+            allowedPath === "/"
+              ? true
+              : resolvedPath === allowedPath || resolvedPath.startsWith(`${allowedPath}/`);
 
-          shouldAttachAuth = resolvedUrl.origin === allowedOrigin && pathAllowed;
+          return resolvedUrl.origin === allowedBaseUrl.origin && pathAllowed;
         } catch {
-          shouldAttachAuth = false;
+          return false;
         }
-      } else {
-        // SSR等: 原則付与しない（必要なら呼び出し側で同一オリジンのみ渡す）
-        shouldAttachAuth = false;
-      }
+      };
 
-      if (typeof window !== "undefined" && !shouldAttachAuth && headers.has("Authorization")) {
+      const shouldAttachAuth = computeShouldAttachAuth();
+
+      // 許可されない送信先には Authorization を載せない（options由来も含めて削除）
+      if (!shouldAttachAuth && headers.has("Authorization")) {
         headers.delete("Authorization");
       }
       if (token && shouldAttachAuth && !headers.has("Authorization")) {
@@ -452,8 +459,8 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         // エラーレスポンスからメッセージを抽出（無い場合でもステータスは返す）
         const rawMsg =
           data && typeof data === "object"
-            ? ((data as any).message ?? (data as any).error ?? (data as any).errors ?? "")
-            : "";
+            ? ((data as any).message ?? (data as any).error ?? (data as any).errors ?? data)
+            : data;
 
         const msg =
           typeof rawMsg === "string"
