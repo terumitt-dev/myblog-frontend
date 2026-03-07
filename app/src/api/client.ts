@@ -168,14 +168,14 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         throw new Error("Invalid endpoint: HTTP is not allowed in production");
       }
 
-      // 絶対URLは同一オリジンのみに制限（意図しない外部通信を防ぐ）
+      // 絶対URLは同一オリジン & API_BASE配下のみに制限（意図しない外部/別パス通信を防ぐ）
       if (isAbsoluteEndpoint) {
-        const allowedOrigin = (() => {
+        const allowedBaseUrl = (() => {
           // API_BASE が絶対URLなら window が無くても判定可能
-          if (/^https?:\/\//i.test(API_BASE)) return new URL(API_BASE).origin;
+          if (/^https?:\/\//i.test(API_BASE)) return new URL(API_BASE);
 
           // API_BASE が相対のときはブラウザオリジンに束縛する
-          if (typeof window !== "undefined") return window.location.origin;
+          if (typeof window !== "undefined") return new URL(API_BASE, window.location.origin);
 
           // SSR等では「許可オリジン」を確定できないため絶対URL自体を禁止
           return null;
@@ -192,8 +192,18 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           throw new Error("Invalid endpoint: URL credentials are not allowed");
         }
 
-        if (!allowedOrigin || parsed.origin !== allowedOrigin) {
+        if (!allowedBaseUrl || parsed.origin !== allowedBaseUrl.origin) {
           throw new Error("Invalid endpoint: cross-origin absolute URL is not allowed");
+        }
+
+        const allowedPath = allowedBaseUrl.pathname.replace(/\/+$/, "") || "/";
+        const pathAllowed =
+          allowedPath === "/"
+            ? true
+            : parsed.pathname === allowedPath || parsed.pathname.startsWith(`${allowedPath}/`);
+
+        if (!pathAllowed) {
+          throw new Error("Invalid endpoint: absolute URL must be under API base path");
         }
       }
 
@@ -306,6 +316,9 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         shouldAttachAuth = false;
       }
 
+      if (!shouldAttachAuth && headers.has("Authorization")) {
+        headers.delete("Authorization");
+      }
       if (token && shouldAttachAuth && !headers.has("Authorization")) {
         headers.set("Authorization", `Bearer ${token}`);
       }
