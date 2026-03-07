@@ -100,12 +100,14 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       const isUrlEncoded =
         typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams;
 
-      // JSON を自動付与するのは「JSONとしてパースできる文字列」のみに限定（Blob等は上書きしない）
+      // JSON を自動付与するのは「先頭が { または [ の文字列」のみに限定（Blob等は上書きしない）
       const isStringBody = typeof body === "string";
       const bodyText = isStringBody ? (body as string) : "";
 
+      const looksLikeJson = isStringBody && /^\s*[\[{]/.test(bodyText);
+
       const isParsableJsonString = (() => {
-        if (!isStringBody) return false;
+        if (!looksLikeJson) return false;
         try {
           JSON.parse(bodyText);
           return true;
@@ -331,7 +333,10 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
               ? new URL(API_BASE, window.location.origin)
               : null;
 
-          if (!allowedBaseUrl) return false;
+          // SSR等でオリジン確定できない場合は、相対URLに限り Authorization を維持する
+          if (!allowedBaseUrl) {
+            return !/^https?:\/\//i.test(url);
+          }
 
           const resolvedUrl =
             typeof window !== "undefined"
