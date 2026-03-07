@@ -181,7 +181,18 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           return null;
         })();
 
-        if (!allowedOrigin || new URL(endpoint).origin !== allowedOrigin) {
+        let parsed: URL;
+        try {
+          parsed = new URL(endpoint);
+        } catch {
+          throw new Error("Invalid endpoint: malformed absolute URL");
+        }
+
+        if (parsed.username || parsed.password) {
+          throw new Error("Invalid endpoint: URL credentials are not allowed");
+        }
+
+        if (!allowedOrigin || parsed.origin !== allowedOrigin) {
           throw new Error("Invalid endpoint: cross-origin absolute URL is not allowed");
         }
       }

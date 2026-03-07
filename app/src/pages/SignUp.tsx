@@ -53,6 +53,19 @@ const SignUp = () => {
         return;
       }
 
+      const status = signUpResponse.data?.status;
+      const message = signUpResponse.data?.message;
+
+      if (status && status !== "success") {
+        setError(message || "サインアップに失敗しました。");
+        return;
+      }
+
+      if (signUpResponse.data == null) {
+        setError("サインアップ応答が不正です。");
+        return;
+      }
+
       // サインアップ成功後、ログインページへリダイレクト
       // （sign_upではJWT発行しない設計のため、明示的にログインが必要）
       navigate("/login");
