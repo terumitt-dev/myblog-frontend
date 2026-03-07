@@ -80,10 +80,9 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
 
       let body = options?.body;
 
-      // GET/HEAD は body を送らない（fetch の互換性・中間機器での拒否回避）
+      // GET/HEAD は body を送らない（互換性・中間機器での拒否回避）
       if ((method === "GET" || method === "HEAD") && body != null) {
-        body = undefined;
-        if (headers.has("Content-Type")) headers.delete("Content-Type");
+        throw new Error("Invalid request: GET/HEAD must not include a request body");
       }
 
       const isFormData =

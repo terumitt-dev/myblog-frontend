@@ -38,12 +38,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       try {
-        // Rails API経由での認証（credentials追加でCookie送信を有効化）
+        // Rails API経由での認証（JWT認証）
         const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
         const response = await fetch(`${base}/auth/sign_in`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include", // Cookie送信を有効化
+          // credentials: "include", // Rails APIはJWT認証のため不要（Cookie/セッション非使用）
           body: JSON.stringify({ admin: { email: normalizedEmail, password } }),
         });
 
@@ -120,7 +120,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await fetch(`${base}/auth/sign_out`, {
         method: "DELETE",
         headers,
-        credentials: "include", // Cookie送信を有効化
+        // credentials: "include", // Rails APIはJWT認証のため不要（Cookie/セッション非使用）
       });
     } finally {
       setIsLoggedIn(false);
