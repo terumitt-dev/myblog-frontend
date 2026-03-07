@@ -3,6 +3,11 @@ export const getApiBase = (): string => {
   const raw = import.meta.env.VITE_API_BASE_URL;
   const apiBase = typeof raw === "string" ? raw.trim() : "";
 
+  // `//example.com` のようなプロトコル相対URLは外部送信になり得るため禁止
+  if (/^\/\//.test(apiBase)) {
+    throw new Error("VITE_API_BASE_URL must not be a protocol-relative URL");
+  }
+
   // 開発環境ではViteプロキシ等を利用できるよう相対パスにフォールバック
   const baseUrl = apiBase || "/api";
 

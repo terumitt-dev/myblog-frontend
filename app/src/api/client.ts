@@ -139,11 +139,32 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           : `/${endpoint}`;
 
       const base = API_BASE === "/" ? "" : API_BASE;
-      const url = isAbsoluteEndpoint
-        ? safeEndpoint
-        : base && (safeEndpoint === base || safeEndpoint.startsWith(`${base}/`))
+
+      const url = (() => {
+        if (isAbsoluteEndpoint) return safeEndpoint;
+
+        // API_BASE が絶対URLの場合は URL で安全に結合（/api の二重付与を防ぐ）
+        if (/^https?:\/\//i.test(base)) {
+          const baseUrl = new URL(base.endsWith("/") ? base : `${base}/`);
+          const basePath = baseUrl.pathname.replace(/\/+$/, "");
+
+          // endpoint がすでに basePath を含んでいたら取り除く
+          const endpointPath =
+            safeEndpoint === basePath
+              ? ""
+              : safeEndpoint.startsWith(`${basePath}/`)
+                ? safeEndpoint.slice(basePath.length + 1)
+                : safeEndpoint.replace(/^\//, "");
+
+          const built = new URL(endpointPath, baseUrl).toString();
+          return endpointPath ? built : built.replace(/\/$/, "");
+        }
+
+        // 相対パスの場合は単純結合（すでに /api 付きなら尊重）
+        return base && (safeEndpoint === base || safeEndpoint.startsWith(`${base}/`))
           ? safeEndpoint
           : `${base}${safeEndpoint}`;
+      })();
 
       // 認証トークンがある場合は追加（設定されたAPIオリジンのときのみ：トークン流出対策）
       const token = getAuthToken();
