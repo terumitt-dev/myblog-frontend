@@ -4,8 +4,8 @@ export const getApiBase = (): string => {
   const apiBase = typeof raw === "string" ? raw.trim() : "";
 
   // 改行・バックスラッシュ等の制御文字は拒否（URL解釈の崩れ/例外を防ぐ）
-  if (/[\\\r\n]/.test(apiBase)) {
-    throw new Error("VITE_API_BASE_URL must not include backslashes or newlines");
+  if (/[\\\r\n\t]/.test(apiBase)) {
+    throw new Error("VITE_API_BASE_URL must not include backslashes, newlines or tabs");
   }
 
   // `ftp://...` 等の誤設定を相対パス扱いにしない（意図しないパスへの通信を防ぐ）

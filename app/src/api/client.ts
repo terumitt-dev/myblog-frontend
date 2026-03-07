@@ -49,7 +49,7 @@ const hasJsonBody = (response: Response): boolean => {
   }
 
   const contentLength = response.headers.get("Content-Length");
-  if (contentLength === "0") return false;
+  if (contentLength != null && Number(contentLength) <= 0) return false;
 
   const contentType = response.headers.get("Content-Type");
   if (contentType && /\bjson\b/i.test(contentType)) {
