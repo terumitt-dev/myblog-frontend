@@ -69,8 +69,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         // 先に Authorization ヘッダーからJWTを取得（ボディ無し成功に備える）
-        const authHeader = response.headers.get("Authorization");
-        const headerToken = authHeader?.replace(/^Bearer\s+/i, "").trim() || null;
+        const authHeader = response.headers.get("Authorization")?.trim() ?? "";
+        const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+        const headerToken = bearerMatch ? bearerMatch[1].trim() : null;
 
         const rawText = await response.text();
         let data: any = null;

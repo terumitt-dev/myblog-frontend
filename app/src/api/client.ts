@@ -55,13 +55,7 @@ const hasJsonBody = (response: Response): boolean => {
   }
 
   const contentType = response.headers.get("Content-Type");
-  if (contentType && /\bjson\b/i.test(contentType)) {
-    return true;
-  }
-
-  // Content-Typeが不正でもエラーレスポンスならボディがある可能性が高い
-  // 安全のためJSONパース試行を許可
-  return !response.ok;
+  return Boolean(contentType && /\bjson\b/i.test(contentType));
 };
 
 // 認証付きfetch関数を作成するためのファクトリ関数
@@ -79,7 +73,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         headers.set("Accept", "application/json");
       }
 
-      const method = (options?.method ?? "GET").toUpperCase();
+      const method = String(options?.method ?? "GET").trim().toUpperCase();
 
       let body = options?.body;
 
@@ -384,6 +378,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
 
       const response = await fetch(url, {
         ...options,
+        method,
         body,
         headers,
       });
