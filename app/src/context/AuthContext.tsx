@@ -39,8 +39,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       try {
         // Rails API経由での認証（JWT認証）
-        const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
-        const response = await fetch(`${base}/auth/sign_in`, {
+        const loginUrl = (() => {
+          if (/^https?:\/\//i.test(API_BASE)) {
+            const baseUrl = new URL(API_BASE.endsWith("/") ? API_BASE : `${API_BASE}/`);
+            return new URL("auth/sign_in", baseUrl).toString();
+          }
+          const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
+          return `${base}/auth/sign_in`;
+        })();
+
+        const response = await fetch(loginUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           // credentials: "include", // Rails APIはJWT認証のため不要（Cookie/セッション非使用）
@@ -114,14 +122,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = useCallback(async () => {
     try {
       // ログアウトAPI呼び出し（常に実行してセッション破棄を試みる）
-      const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
+      const logoutUrl = (() => {
+        if (/^https?:\/\//i.test(API_BASE)) {
+          const baseUrl = new URL(API_BASE.endsWith("/") ? API_BASE : `${API_BASE}/`);
+          return new URL("auth/sign_out", baseUrl).toString();
+        }
+        const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
+        return `${base}/auth/sign_out`;
+      })();
+
       const headers = new Headers();
 
       if (token) {
         headers.set("Authorization", `Bearer ${token}`);
       }
 
-      await fetch(`${base}/auth/sign_out`, {
+      await fetch(logoutUrl, {
         method: "DELETE",
         headers,
         // credentials: "include", // Rails APIはJWT認証のため不要（Cookie/セッション非使用）

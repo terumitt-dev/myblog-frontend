@@ -46,6 +46,33 @@ export const getApiBase = (): string => {
     if (u.username || u.password) {
       throw new Error("VITE_API_BASE_URL must not include URL credentials");
     }
+
+    // 絶対URLでもドットセグメントを禁止（URL正規化で別パスに化けるのを防ぐ）
+    const rawPath = (() => {
+      const m = normalizedBaseUrl.match(/^https?:\/\/[^\/]+(\/[^?#]*)/i);
+      return m?.[1] ?? "/";
+    })();
+
+    const decodedPath = (() => {
+      try {
+        return decodeURIComponent(rawPath);
+      } catch {
+        return rawPath;
+      }
+    })();
+
+    const hasDotSegments =
+      /(^|\/)\.\.(\/|$)/.test(rawPath) ||
+      /(^|\/)\.(\/|$)/.test(rawPath) ||
+      /(^|\/)\.\.(\/|$)/.test(decodedPath) ||
+      /(^|\/)\.(\/|$)/.test(decodedPath);
+
+    const hasEncodedDotSegments =
+      /(^|\/|%2f)%2e(%2e)?(\/|%2f|$)/i.test(rawPath);
+
+    if (hasDotSegments || hasEncodedDotSegments) {
+      throw new Error("VITE_API_BASE_URL must not include dot segments");
+    }
   }
 
   // 相対パスのドットセグメントを禁止（誤設定/意図しないパス解決を防ぐ）

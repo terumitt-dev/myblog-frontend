@@ -490,13 +490,25 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
             ? ((data as any).message ?? (data as any).error ?? (data as any).errors ?? data)
             : data;
 
+        const safeStringify = (v: unknown): string => {
+          try {
+            return JSON.stringify(v);
+          } catch {
+            try {
+              return String(v);
+            } catch {
+              return "";
+            }
+          }
+        };
+
         const msg =
           typeof rawMsg === "string"
             ? rawMsg
             : Array.isArray(rawMsg)
               ? rawMsg.join(", ")
               : rawMsg
-                ? JSON.stringify(rawMsg)
+                ? safeStringify(rawMsg)
                 : "";
 
         const trimmedMsg = msg.trim().slice(0, 500);
