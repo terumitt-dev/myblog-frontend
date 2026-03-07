@@ -109,17 +109,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = useCallback(async () => {
     try {
-      // ログアウトAPI呼び出し（トークン付き、credentials追加）
+      // ログアウトAPI呼び出し（常に実行してセッション破棄を試みる）
+      const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
+      const headers = new Headers();
+
       if (token) {
-        const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
-        await fetch(`${base}/auth/sign_out`, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include", // Cookie送信を有効化
-        });
+        headers.set("Authorization", `Bearer ${token}`);
       }
+
+      await fetch(`${base}/auth/sign_out`, {
+        method: "DELETE",
+        headers,
+        credentials: "include", // Cookie送信を有効化
+      });
     } finally {
       setIsLoggedIn(false);
       setToken(null);

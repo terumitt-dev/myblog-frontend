@@ -185,7 +185,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         throw new Error("Invalid endpoint: hash-only endpoint is not allowed");
       }
 
-      if (/[\\\r\n]/.test(endpointTrimmed)) {
+      if (/[\\\r\n]/.test(endpointTrimmed) || /%(0d|0a|5c)/i.test(endpointTrimmed)) {
         throw new Error("Invalid endpoint: backslashes or newlines are not allowed");
       }
 
@@ -337,7 +337,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
           const resolvedUrl =
             typeof window !== "undefined"
               ? new URL(url, window.location.href)
-              : new URL(url);
+              : new URL(url, allowedBaseUrl);
 
           const allowedPath = allowedBaseUrl.pathname.replace(/\/+$/, "") || "/";
           const resolvedPath = resolvedUrl.pathname;
