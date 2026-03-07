@@ -170,18 +170,22 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         // API_BASE が絶対URLの場合は URL で安全に結合（/api の二重付与を防ぐ）
         if (/^https?:\/\//i.test(base)) {
           const baseUrl = new URL(base.endsWith("/") ? base : `${base}/`);
-          const basePath = baseUrl.pathname.replace(/\/+$/, "");
+          const basePath = baseUrl.pathname.replace(/\/+$/, "") || "/";
 
-          // endpoint がすでに basePath を含んでいたら取り除く
-          const endpointPath =
-            safeEndpoint === basePath
-              ? ""
-              : safeEndpoint.startsWith(`${basePath}/`)
-                ? safeEndpoint.slice(basePath.length + 1)
-                : safeEndpoint.replace(/^\//, "");
+          // safeEndpoint にクエリ/ハッシュがあっても pathname ベースで二重付与を回避する
+          const endpointUrl = new URL(safeEndpoint, baseUrl.origin);
+          const endpointPathname = endpointUrl.pathname.replace(/\/+$/, "") || "/";
 
-          const built = new URL(endpointPath, baseUrl).toString();
-          return endpointPath ? built : built.replace(/\/$/, "");
+          // endpoint がすでに basePath 配下なら、そのまま base origin で解決して返す
+          if (
+            endpointPathname === basePath ||
+            endpointPathname.startsWith(`${basePath}/`)
+          ) {
+            return endpointUrl.toString();
+          }
+
+          // baseUrl(/api/) に対して相対結合する（先頭 "/" は落とす）
+          return new URL(safeEndpoint.replace(/^\//, ""), baseUrl).toString();
         }
 
         // 相対パスの場合は単純結合（すでに /api 付きなら尊重）

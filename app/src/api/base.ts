@@ -25,9 +25,10 @@ export const getApiBase = (): string => {
       ? baseUrl
       : `/${baseUrl}`;
 
-  // 本番ビルド時は環境変数必須（空白のみもNG）
-  if (import.meta.env.PROD && !apiBase) {
-    throw new Error("VITE_API_BASE_URL is required in production");
+  // 本番ビルド時: 明示設定が空文字/空白のみはNG（未設定なら同一オリジン相対パスを許容）
+  const hasExplicitEnv = typeof raw === "string";
+  if (import.meta.env.PROD && hasExplicitEnv && !apiBase) {
+    throw new Error("VITE_API_BASE_URL must not be empty in production");
   }
 
   // 本番ビルド時は「絶対URLならHTTPS必須」。相対パス（同一オリジン想定）は許可する。
