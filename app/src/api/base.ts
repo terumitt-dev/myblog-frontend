@@ -1,4 +1,14 @@
 // app/src/api/base.ts
+
+// ドットセグメント検出ヘルパー
+const containsDotSegments = (path: string): boolean => {
+  return (
+    /(^|\/)\.\.(\/|$)/.test(path) ||
+    /(^|\/)\.(\/|$)/.test(path) ||
+    /(^|\/|%2f)%2e(%2e)?(\/|%2f|$)/i.test(path)
+  );
+};
+
 export const getApiBase = (): string => {
   const raw = import.meta.env.VITE_API_BASE_URL;
   const apiBase = typeof raw === "string" ? raw.trim() : "";
@@ -61,16 +71,7 @@ export const getApiBase = (): string => {
       }
     })();
 
-    const hasDotSegments =
-      /(^|\/)\.\.(\/|$)/.test(rawPath) ||
-      /(^|\/)\.(\/|$)/.test(rawPath) ||
-      /(^|\/)\.\.(\/|$)/.test(decodedPath) ||
-      /(^|\/)\.(\/|$)/.test(decodedPath);
-
-    const hasEncodedDotSegments =
-      /(^|\/|%2f)%2e(%2e)?(\/|%2f|$)/i.test(rawPath);
-
-    if (hasDotSegments || hasEncodedDotSegments) {
+    if (containsDotSegments(rawPath) || containsDotSegments(decodedPath)) {
       throw new Error("VITE_API_BASE_URL must not include dot segments");
     }
   }
@@ -85,13 +86,7 @@ export const getApiBase = (): string => {
       }
     })();
 
-    const hasDotSegments =
-      /(^|\/)\.\.(\/|$)/.test(decoded) || /(^|\/)\.(\/|$)/.test(decoded);
-
-    const hasEncodedDotSegments =
-      /(^|\/|%2f)%2e(%2e)?(\/|%2f|$)/i.test(normalizedBaseUrl);
-
-    if (hasDotSegments || hasEncodedDotSegments) {
+    if (containsDotSegments(normalizedBaseUrl) || containsDotSegments(decoded)) {
       throw new Error("VITE_API_BASE_URL must not include dot segments");
     }
   }

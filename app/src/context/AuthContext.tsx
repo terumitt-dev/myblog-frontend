@@ -20,6 +20,16 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Auth用URL生成ヘルパー
+const buildAuthUrl = (endpoint: "sign_in" | "sign_out"): string => {
+  if (/^https?:\/\//i.test(API_BASE)) {
+    const baseUrl = new URL(API_BASE.endsWith("/") ? API_BASE : `${API_BASE}/`);
+    return new URL(`auth/${endpoint}`, baseUrl).toString();
+  }
+  const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
+  return `${base}/auth/${endpoint}`;
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [token, setToken] = useState<string | null>(null);
@@ -39,14 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       try {
         // Rails API経由での認証（JWT認証）
-        const loginUrl = (() => {
-          if (/^https?:\/\//i.test(API_BASE)) {
-            const baseUrl = new URL(API_BASE.endsWith("/") ? API_BASE : `${API_BASE}/`);
-            return new URL("auth/sign_in", baseUrl).toString();
-          }
-          const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
-          return `${base}/auth/sign_in`;
-        })();
+        const loginUrl = buildAuthUrl("sign_in");
 
         const response = await fetch(loginUrl, {
           method: "POST",
@@ -122,14 +125,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = useCallback(async () => {
     try {
       // ログアウトAPI呼び出し（常に実行してセッション破棄を試みる）
-      const logoutUrl = (() => {
-        if (/^https?:\/\//i.test(API_BASE)) {
-          const baseUrl = new URL(API_BASE.endsWith("/") ? API_BASE : `${API_BASE}/`);
-          return new URL("auth/sign_out", baseUrl).toString();
-        }
-        const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
-        return `${base}/auth/sign_out`;
-      })();
+      const logoutUrl = buildAuthUrl("sign_out");
 
       const headers = new Headers();
 
