@@ -108,13 +108,15 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         typeof URLSearchParams !== "undefined" &&
         options?.body instanceof URLSearchParams;
 
-      // JSON を自動付与するのは「文字列ボディ」のみに限定（Blob等は上書きしない）
+      // JSON を自動付与するのは「JSON文字列」のみに限定（Blob等は上書きしない）
       const isStringBody = typeof options?.body === "string";
+      const bodyText = isStringBody ? (options!.body as string) : "";
+      const looksLikeJson = isStringBody && /^\s*[\[{]/.test(bodyText);
 
       if (hasBody && !hasContentType && !isFormData) {
         if (isUrlEncoded) {
           headers["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8";
-        } else if (isStringBody) {
+        } else if (looksLikeJson) {
           headers["Content-Type"] = "application/json";
         }
       }
