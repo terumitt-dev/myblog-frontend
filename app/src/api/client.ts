@@ -104,7 +104,10 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       const isFormData =
         typeof FormData !== "undefined" && options?.body instanceof FormData;
 
-      if (hasBody && !hasContentType && !isFormData) {
+      // JSON を自動付与するのは「文字列ボディ」のみに限定（URLSearchParams/Blob等は上書きしない）
+      const isStringBody = typeof options?.body === "string";
+
+      if (hasBody && !hasContentType && !isFormData && isStringBody) {
         headers["Content-Type"] = "application/json";
       }
 
@@ -145,7 +148,11 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         shouldAttachAuth = false;
       }
 
-      if (token && shouldAttachAuth) {
+      const hasAuthorization = Object.keys(headers).some(
+        (k) => k.toLowerCase() === "authorization",
+      );
+
+      if (token && shouldAttachAuth && !hasAuthorization) {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
