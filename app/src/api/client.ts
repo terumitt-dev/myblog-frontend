@@ -104,11 +104,19 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       const isFormData =
         typeof FormData !== "undefined" && options?.body instanceof FormData;
 
-      // JSON を自動付与するのは「文字列ボディ」のみに限定（URLSearchParams/Blob等は上書きしない）
+      const isUrlEncoded =
+        typeof URLSearchParams !== "undefined" &&
+        options?.body instanceof URLSearchParams;
+
+      // JSON を自動付与するのは「文字列ボディ」のみに限定（Blob等は上書きしない）
       const isStringBody = typeof options?.body === "string";
 
-      if (hasBody && !hasContentType && !isFormData && isStringBody) {
-        headers["Content-Type"] = "application/json";
+      if (hasBody && !hasContentType && !isFormData) {
+        if (isUrlEncoded) {
+          headers["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8";
+        } else if (isStringBody) {
+          headers["Content-Type"] = "application/json";
+        }
       }
 
       const isProtocolRelative = endpoint.startsWith("//");
@@ -195,8 +203,14 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
             console.warn("Non-JSON success response:", text.slice(0, 200), e);
           }
 
-          // 成功時は非JSONでも本文を返して成功扱いにする（上のjson()失敗時ハンドリングと整合）
-          return { ok: true, data: text as unknown as T };
+          // Accept: application/json を付与しているのに非JSONが返ってきた場合はエラー
+          const detail = text.trim().slice(0, 500);
+          return {
+            ok: false,
+            error: detail
+              ? `API Error: ${response.status} ${response.statusText} - Unexpected non-JSON response: ${detail}`
+              : `API Error: ${response.status} ${response.statusText} - Unexpected non-JSON response`,
+          };
         }
       }
 
