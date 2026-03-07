@@ -327,6 +327,13 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
         return alreadyHasBase ? safeEndpoint : `${base}${safeEndpoint}`;
       })();
 
+      // SSR等: Node fetch は相対URLを受け付けないことがあるためガード
+      if (typeof window === "undefined" && !/^https?:\/\//i.test(url)) {
+        throw new Error(
+          "Invalid request in SSR: set VITE_API_BASE_URL to an absolute http(s) URL",
+        );
+      }
+
       // 認証トークンがある場合は追加（設定されたAPIオリジン＆パスのときのみ：トークン流出対策）
       const token = getAuthToken();
 
@@ -368,7 +375,7 @@ const createAuthenticatedApiCall = (getAuthToken: () => string | null) => {
       if (!shouldAttachAuth && headers.has("Authorization")) {
         headers.delete("Authorization");
       }
-      if (token && shouldAttachAuth && !headers.has("Authorization")) {
+      if (token && shouldAttachAuth) {
         headers.set("Authorization", `Bearer ${token}`);
       }
 
