@@ -124,14 +124,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const logout = useCallback(async () => {
+    const currentToken = token;
+
+    // 先に状態をクリア（通信失敗/ハングでもUI上は確実にログアウトさせる）
+    setIsLoggedIn(false);
+    setToken(null);
+
     try {
       // ログアウトAPI呼び出し（常に実行してセッション破棄を試みる）
       const logoutUrl = buildAuthUrl("sign_out");
 
       const headers = new Headers();
 
-      if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
+      if (currentToken) {
+        headers.set("Authorization", `Bearer ${currentToken}`);
       }
 
       await fetch(logoutUrl, {
@@ -139,9 +145,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         headers,
         // credentials: "include", // Rails APIはJWT認証のため不要（Cookie/セッション非使用）
       });
-    } finally {
-      setIsLoggedIn(false);
-      setToken(null);
+    } catch (e) {
+      // ログアウトAPI失敗は握りつぶす（状態は既にクリア済み）
+      console.warn("Logout request failed:", e);
     }
   }, [token]);
 
