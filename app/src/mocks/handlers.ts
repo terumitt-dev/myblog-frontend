@@ -12,7 +12,7 @@ const CATEGORY_NAMES: Record<number, string> = {
 };
 
 // モックデータ（開発環境用）
-const initialBlogs: Blog[] = [
+const createInitialBlogs = (): Blog[] => [
   {
     id: 1,
     title: "React 19の新機能について",
@@ -39,7 +39,7 @@ const initialBlogs: Blog[] = [
   },
 ];
 
-const initialComments: Comment[] = [
+const createInitialComments = (): Comment[] => [
   {
     id: 1,
     blog_id: 1,
@@ -58,8 +58,13 @@ const initialComments: Comment[] = [
   },
 ];
 
-let blogs: Blog[] = initialBlogs.map((b) => ({ ...b }));
-let comments: Comment[] = initialComments.map((c) => ({ ...c }));
+let blogs: Blog[] = createInitialBlogs();
+let comments: Comment[] = createInitialComments();
+
+export const resetMockData = () => {
+  blogs = createInitialBlogs();
+  comments = createInitialComments();
+};
 
 // セッションスコープでの一貫トークン管理（テスト対応版）
 let sessionToken: string | null = null;

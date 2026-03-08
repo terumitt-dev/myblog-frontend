@@ -7,12 +7,15 @@ import "./index.css";
 // MSWの初期化（セキュリティ強化版）
 async function enableMocking() {
   // 複数条件での厳格チェック
+  const hostname =
+    typeof window !== "undefined" ? window.location.hostname : "";
+
   if (
     import.meta.env.PROD ||
     import.meta.env.MODE === "production" ||
     !import.meta.env.DEV ||
-    window.location.hostname === "go-lilaregard.com" ||
-    window.location.hostname === "www.go-lilaregard.com"
+    hostname === "go-lilaregard.com" ||
+    hostname === "www.go-lilaregard.com"
   ) {
     console.log("📦 Production mode: MSW disabled");
     return;
