@@ -5,7 +5,7 @@ import type { BlogCategory, Blog, Comment } from "@/types";
 const API_BASE = "/api";
 
 // カテゴリ名マッピング（フロントエンドの期待値に合わせる）
-const CATEGORY_NAMES: Record<number, string> = {
+const CATEGORY_NAMES: Record<BlogCategory, string> = {
   0: "hobby",
   1: "tech",
   2: "other",
@@ -64,6 +64,7 @@ let comments: Comment[] = createInitialComments();
 export const resetMockData = () => {
   blogs = createInitialBlogs();
   comments = createInitialComments();
+  sessionToken = null;
 };
 
 // セッションスコープでの一貫トークン管理（テスト対応版）

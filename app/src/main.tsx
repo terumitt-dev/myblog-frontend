@@ -6,9 +6,11 @@ import "./index.css";
 
 // MSWの初期化（セキュリティ強化版）
 async function enableMocking() {
+  // ブラウザ以外ではMSWを初期化しない（SSR/テスト対策）
+  if (typeof window === "undefined") return;
+
   // 複数条件での厳格チェック
-  const hostname =
-    typeof window !== "undefined" ? window.location.hostname : "";
+  const hostname = window.location.hostname;
 
   if (
     import.meta.env.PROD ||
