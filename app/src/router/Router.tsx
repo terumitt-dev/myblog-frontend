@@ -7,6 +7,7 @@ import Category from "@/pages/Category";
 import PostDetail from "@/pages/PostDetail";
 import Admin from "@/pages/Admin";
 import Login from "@/pages/Login";
+import SignUp from "@/pages/SignUp";
 import { useAuth } from "@/hooks/useAuth";
 
 function AdminErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
@@ -66,6 +67,7 @@ const Router = () => {
       <Route path="/category/:category" element={<Category />} />
       <Route path="/posts/:id" element={<PostDetail />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<SignUp />} />
       <Route
         path="/admin"
         element={

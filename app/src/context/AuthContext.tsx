@@ -1,16 +1,13 @@
 // app/src/context/AuthContext.tsx
 import { createContext, useState, useCallback } from "react";
-
-// ⚠️ 重要：本番環境では絶対に使用しないでください
-// この実装は開発環境専用の簡易認証システムです
+import { API_BASE } from "@/api/base";
 
 type LoginResult = {
   success: boolean;
   error?:
     | "network_error"
     | "invalid_credentials"
-    | "production_disabled"
-    | "development_only";
+    | "token_missing";
 };
 
 type AuthContextType = {
@@ -18,115 +15,150 @@ type AuthContextType = {
   token: string | null;
   getAuthToken: () => string | null;
   login: (email: string, password: string) => Promise<LoginResult>;
-  logout: () => void;
-  isDevelopmentMode: boolean;
+  logout: () => void | Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 開発環境チェック（厳格）
-const isDevelopmentEnvironment = (): boolean => {
-  // SSR対応
-  if (typeof window === "undefined") return false;
-
-  // 複数条件での厳格チェック
-  return (
-    import.meta.env.DEV && // Viteの開発モード
-    import.meta.env.MODE === "development" && // NODE_ENVチェック
-    !import.meta.env.PROD && // 本番環境ではない
-    window.location.hostname === "localhost" && // localhostでのみ動作
-    (window.location.port === "5173" || // Vite開発サーバー
-      window.location.port === "3000") // 代替ポート
-  );
+// Auth用URL生成ヘルパー
+const buildAuthUrl = (endpoint: "sign_in" | "sign_out"): string => {
+  if (/^https?:\/\//i.test(API_BASE)) {
+    const baseUrl = new URL(API_BASE.endsWith("/") ? API_BASE : `${API_BASE}/`);
+    return new URL(`auth/${endpoint}`, baseUrl).toString();
+  }
+  const base = API_BASE === "/" ? "" : API_BASE.replace(/\/$/, "");
+  return `${base}/auth/${endpoint}`;
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [token, setToken] = useState<string | null>(null);
-  const isDevelopmentMode = isDevelopmentEnvironment();
 
   // トークン取得関数
   const getAuthToken = useCallback(() => token, [token]);
 
   const login = useCallback(
     async (email: string, password: string): Promise<LoginResult> => {
-      // 本番環境ガード（最優先）
-      if (!isDevelopmentMode) {
-        console.error("🚫 本番環境: 認証機能は無効化されています");
-        return { success: false, error: "production_disabled" };
-      }
+      // メールアドレスのみ正規化（パスワードは意図的なスペースを許容）
+      const normalizedEmail = email.trim();
 
       // 入力値検証
-      if (!email || !password) {
+      if (!normalizedEmail || !password) {
         return { success: false, error: "invalid_credentials" };
       }
 
       try {
-        // モックAPI経由での認証
-        const response = await fetch("/api/auth/login", {
+        // Rails API経由での認証（JWT認証）
+        const loginUrl = buildAuthUrl("sign_in");
+
+        const response = await fetch(loginUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          // credentials: "include", // Rails APIはJWT認証のため不要（Cookie/セッション非使用）
+          body: JSON.stringify({ admin: { email: normalizedEmail, password } }),
         });
 
         if (!response.ok) {
-          console.log("🔒 開発環境: ログイン失敗");
-          return { success: false, error: "invalid_credentials" };
+          setIsLoggedIn(false);
+          setToken(null);
+
+          if (response.status === 401 || response.status === 422) {
+            return { success: false, error: "invalid_credentials" };
+          }
+          return { success: false, error: "network_error" };
         }
 
-        const data = await response.json();
+        // 先に Authorization ヘッダーからJWTを取得（ボディ無し成功に備える）
+        const authHeader = response.headers.get("Authorization")?.trim() ?? "";
+        const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+        const headerToken = bearerMatch ? bearerMatch[1].trim() : null;
 
-        // MSWハンドラーのレスポンス形式に合わせて処理
-        if (data.token && data.admin) {
+        const rawText = await response.text();
+        let data: any = null;
+
+        if (rawText.trim()) {
+          try {
+            data = JSON.parse(rawText);
+          } catch {
+            data = null;
+          }
+        }
+
+        const bodyToken = typeof data?.token === "string" ? data.token : null;
+        const tokenFromResponse = headerToken || bodyToken;
+
+        // ボディが無い/形式が異なる成功レスポンスでも、トークンが取れればログイン成功にする
+        if (response.ok && tokenFromResponse) {
           setIsLoggedIn(true);
-          setToken(data.token);
-          console.log("✅ 開発環境: ログイン成功（メモリ管理）");
-
+          setToken(tokenFromResponse);
           return { success: true };
-        } else {
-          return { success: false, error: "invalid_credentials" };
         }
+
+        // Rails APIのレスポンス形式（JSON）に合わせた成功判定も残す
+        if (data?.status === "success" && data?.data && tokenFromResponse) {
+          setIsLoggedIn(true);
+          setToken(tokenFromResponse);
+          return { success: true };
+        }
+
+        if (response.ok && !tokenFromResponse) {
+          // 成功扱いでもトークンが無い場合は未認証として扱い、状態をクリアする
+          setIsLoggedIn(false);
+          setToken(null);
+
+          console.error(
+            "JWT token not found (Authorization header may require Access-Control-Expose-Headers)",
+          );
+          return { success: false, error: "token_missing" };
+        }
+
+        return { success: false, error: "invalid_credentials" };
       } catch (error) {
-        console.error("開発環境: 認証エラー", error);
+        console.error("Authentication error:", error);
+        setIsLoggedIn(false);
+        setToken(null);
         return { success: false, error: "network_error" };
       }
     },
-    [isDevelopmentMode],
+    [],
   );
 
   const logout = useCallback(async () => {
-    if (!isDevelopmentMode) {
-      console.warn("🚫 本番環境: ログアウト機能は無効化されています");
-      return;
-    }
+    const currentToken = token;
+
+    // 先に状態をクリア（通信失敗/ハングでもUI上は確実にログアウトさせる）
+    setIsLoggedIn(false);
+    setToken(null);
 
     try {
-      // ログアウトAPI呼び出し（トークン付き）
-      if (token) {
-        await fetch("/api/auth/logout", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      // ログアウトAPI呼び出し（常に実行してセッション破棄を試みる）
+      const logoutUrl = buildAuthUrl("sign_out");
+
+      const headers = new Headers();
+
+      if (currentToken) {
+        headers.set("Authorization", `Bearer ${currentToken}`);
       }
-    } finally {
-      // メモリから全てクリア
-      setIsLoggedIn(false);
-      setToken(null);
-      console.log("🚪 開発環境: ログアウト完了（メモリクリア）");
+
+      await fetch(logoutUrl, {
+        method: "DELETE",
+        headers,
+        // credentials: "include", // Rails APIはJWT認証のため不要（Cookie/セッション非使用）
+      });
+    } catch (e) {
+      // ログアウトAPI失敗は握りつぶす（状態は既にクリア済み）
+      console.warn("Logout request failed:", e);
     }
-  }, [isDevelopmentMode, token]);
+  }, [token]);
 
   return (
     <AuthContext.Provider
       value={{
-        isLoggedIn: isDevelopmentMode ? isLoggedIn : false,
+        isLoggedIn,
         token,
         getAuthToken,
         login,
         logout,
-        isDevelopmentMode,
       }}
     >
       {children}

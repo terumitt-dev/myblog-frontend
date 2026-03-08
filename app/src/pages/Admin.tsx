@@ -46,8 +46,8 @@ const Admin = () => {
   const loadPosts = useCallback(async () => {
     try {
       const response = await blogsApi.getAll({ limit: 100 });
-      if (response.error) {
-        throw new Error(response.error);
+      if (!response.ok) {
+        throw new Error(response.error || "API Error");
       }
 
       const data: { blogs?: BlogWithCategoryName[] } = response.data || {};
@@ -167,8 +167,14 @@ const Admin = () => {
         // 認証付きAPIクライアントで更新
         const response = await blogsApi.update(editingPostId, updateData);
 
-        if (response.error) {
-          throw new Error(response.error);
+        if (!response.ok) {
+          throw new Error(response.error || "API Error");
+        }
+
+        if (response.data == null) {
+          // 204等でレスポンスボディが空でも更新自体は成功し得るため再取得で同期する
+          await loadPosts();
+          return;
         }
 
         const updatedBlog = normalizeBlogResponse(response.data);
@@ -198,8 +204,12 @@ const Admin = () => {
         // 認証付きAPIクライアントで投稿
         const response = await blogsApi.create(newPostData);
 
-        if (response.error) {
-          throw new Error(response.error);
+        if (!response.ok) {
+          throw new Error(response.error || "API Error");
+        }
+
+        if (response.data == null) {
+          throw new Error("作成レスポンスが空です");
         }
 
         // APIレスポンスの正しいBlogオブジェクトを使用
@@ -239,8 +249,8 @@ const Admin = () => {
       // 認証付きAPIクライアントで削除
       const response = await blogsApi.delete(id);
 
-      if (response.error) {
-        throw new Error(response.error);
+      if (!response.ok) {
+        throw new Error(response.error || "API Error");
       }
 
       // フロントエンドの状態から削除
