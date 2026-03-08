@@ -61,14 +61,14 @@ const createInitialComments = (): Comment[] => [
 let blogs: Blog[] = createInitialBlogs();
 let comments: Comment[] = createInitialComments();
 
+// セッションスコープでの一貫トークン管理（テスト対応版）
+let sessionToken: string | null = null;
+
 export const resetMockData = () => {
   blogs = createInitialBlogs();
   comments = createInitialComments();
   sessionToken = null;
 };
-
-// セッションスコープでの一貫トークン管理（テスト対応版）
-let sessionToken: string | null = null;
 
 const getDevToken = (): string => {
   const envToken = import.meta.env.VITE_DEV_AUTH_TOKEN;
