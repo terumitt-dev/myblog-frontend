@@ -1,4 +1,4 @@
-// app/src/dummy/types.ts
+// app/src/types/index.ts
 // Rails スキーマに基づく型定義
 
 // 管理者情報（Devise使用）

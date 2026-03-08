@@ -6,7 +6,7 @@ import CategoryButtons from "@/components/organisms/CategoryButtons";
 import ArticleSkeleton from "@/components/molecules/ArticleSkeleton";
 import Container from "@/components/layouts/Container";
 import { cn } from "@/components/utils/cn";
-import type { BlogWithCategoryName } from "@/dummy/types";
+import type { BlogWithCategoryName } from "@/types";
 import { getReadMoreButtonStyle } from "@/components/utils/colors";
 
 const Top = () => {

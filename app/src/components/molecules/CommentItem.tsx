@@ -1,6 +1,6 @@
 // app/src/components/molecules/CommentItem.tsx
 import { useState } from "react";
-import type { Comment } from "@/dummy/types";
+import type { Comment } from "@/types";
 
 type Props = {
   comment: Comment;

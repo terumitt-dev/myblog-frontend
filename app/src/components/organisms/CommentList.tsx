@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { cn } from "@/components/utils/cn";
 import CommentItem from "@/components/molecules/CommentItem";
-import type { Comment } from "@/dummy/types";
+import type { Comment } from "@/types";
 
 type Props = {
   comments: Comment[];
