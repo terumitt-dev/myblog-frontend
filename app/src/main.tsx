@@ -7,7 +7,8 @@ import "./index.css";
 // MSWの初期化（セキュリティ強化版）
 async function enableMocking() {
   // ブラウザ以外ではMSWを初期化しない（SSR/テスト対策）
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || typeof navigator === "undefined") return;
+  if (!("serviceWorker" in navigator)) return;
 
   // 複数条件での厳格チェック
   const hostname = window.location.hostname;
