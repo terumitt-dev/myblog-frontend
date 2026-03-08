@@ -11,7 +11,8 @@ async function enableMocking() {
     import.meta.env.PROD ||
     import.meta.env.MODE === "production" ||
     !import.meta.env.DEV ||
-    window.location.hostname === "your-production-domain.com" // 本番ドメインを指定
+    window.location.hostname === "go-lilaregard.com" ||
+    window.location.hostname === "www.go-lilaregard.com"
   ) {
     console.log("📦 Production mode: MSW disabled");
     return;
