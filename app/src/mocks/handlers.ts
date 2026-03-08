@@ -12,12 +12,12 @@ const CATEGORY_NAMES: Record<number, string> = {
 };
 
 // モックデータ（開発環境用）
-const blogs: Blog[] = [
+const initialBlogs: Blog[] = [
   {
     id: 1,
     title: "React 19の新機能について",
     content: "React 19がリリースされ、多くの新機能が追加されました。",
-    category: 1 as BlogCategory,
+    category: 1,
     created_at: "2024-12-14T15:30:00.000Z",
     updated_at: "2024-12-15T10:00:00.000Z",
   },
@@ -25,7 +25,7 @@ const blogs: Blog[] = [
     id: 2,
     title: "TypeScript 5.3の型推論改善",
     content: "TypeScript 5.3で型推論がさらに強化されました。",
-    category: 1 as BlogCategory,
+    category: 1,
     created_at: "2024-12-13T14:20:00.000Z",
     updated_at: "2024-12-14T09:30:00.000Z",
   },
@@ -33,13 +33,13 @@ const blogs: Blog[] = [
     id: 3,
     title: "週末の登山記録",
     content: "週末に近くの山に登ってきました。天気も良く最高でした。",
-    category: 0 as BlogCategory,
+    category: 0,
     created_at: "2024-12-12T18:45:00.000Z",
     updated_at: "2024-12-13T08:15:00.000Z",
   },
 ];
 
-const comments: Comment[] = [
+const initialComments: Comment[] = [
   {
     id: 1,
     blog_id: 1,
@@ -57,6 +57,9 @@ const comments: Comment[] = [
     updated_at: "2024-12-15T13:30:00.000Z",
   },
 ];
+
+let blogs: Blog[] = initialBlogs.map((b) => ({ ...b }));
+let comments: Comment[] = initialComments.map((c) => ({ ...c }));
 
 // セッションスコープでの一貫トークン管理（テスト対応版）
 let sessionToken: string | null = null;
