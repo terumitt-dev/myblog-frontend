@@ -8,7 +8,7 @@ import "./index.css";
 async function enableMocking() {
   // ブラウザ以外ではMSWを初期化しない（SSR/テスト対策）
   if (typeof window === "undefined" || typeof navigator === "undefined") return;
-  if (!("serviceWorker" in navigator)) return;
+  if (!navigator.serviceWorker) return;
 
   // 明示的な設定がある場合はそれに従い、未設定なら開発環境では有効化
   const mswEnabled =
