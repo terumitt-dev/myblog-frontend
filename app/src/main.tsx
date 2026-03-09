@@ -10,8 +10,12 @@ async function enableMocking() {
   if (typeof window === "undefined" || typeof navigator === "undefined") return;
   if (!("serviceWorker" in navigator)) return;
 
-  // 明示的に許可された場合のみMSWを有効化
-  if (import.meta.env.VITE_ENABLE_MSW !== "true") return;
+  // 明示的な設定がある場合はそれに従い、未設定なら開発環境では有効化
+  const mswEnabled =
+    import.meta.env.VITE_ENABLE_MSW != null
+      ? import.meta.env.VITE_ENABLE_MSW === "true"
+      : import.meta.env.DEV;
+  if (!mswEnabled) return;
 
   // 複数条件での厳格チェック
   const hostname = window.location.hostname;
