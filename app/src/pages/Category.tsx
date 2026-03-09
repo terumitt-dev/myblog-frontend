@@ -8,7 +8,7 @@ import { cn } from "@/components/utils/cn";
 import ThemeToggle from "@/components/molecules/ThemeToggle";
 import ArticleSkeleton from "@/components/molecules/ArticleSkeleton";
 import { useStaticEffects } from "@/hooks/useStaticEffects";
-import type { BlogWithCategoryName, BlogCategory } from "@/dummy/types";
+import type { BlogWithCategoryName, BlogCategory } from "@/types";
 import "./Category.css";
 import { getReadMoreButtonStyle } from "@/components/utils/colors";
 

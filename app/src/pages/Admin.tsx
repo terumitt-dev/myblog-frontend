@@ -12,7 +12,7 @@ import {
 } from "@/components/utils/sanitizer";
 import { cn } from "@/components/utils/cn";
 import { useAuthenticatedApi } from "@/api/client";
-import type { BlogWithCategoryName } from "@/dummy/types";
+import type { BlogWithCategoryName } from "@/types";
 import {
   categoryToString,
   normalizeBlogResponse,

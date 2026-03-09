@@ -9,7 +9,7 @@ import CommentStartButton from "@/components/molecules/CommentStartButton";
 import PostDetailSkeleton from "@/components/molecules/PostDetailSkeleton";
 import { cn } from "@/components/utils/cn";
 import Container from "@/components/layouts/Container";
-import type { BlogWithCategoryName, Comment } from "@/dummy/types";
+import type { BlogWithCategoryName, Comment } from "@/types";
 
 const PostDetail = () => {
   const { id } = useParams<{ id: string }>();

@@ -1,19 +1,82 @@
 // app/src/mocks/handlers.ts
 import { http, HttpResponse } from "msw";
-import { blogs, comments } from "@/dummy";
-import type { BlogCategory, Blog, Comment } from "@/dummy";
+import type { BlogCategory, Blog, Comment } from "@/types";
 
 const API_BASE = "/api";
 
 // カテゴリ名マッピング（フロントエンドの期待値に合わせる）
-const CATEGORY_NAMES: Record<number, string> = {
+const CATEGORY_NAMES: Record<BlogCategory, string> = {
   0: "hobby",
   1: "tech",
   2: "other",
 };
 
+// モックデータ（開発環境用）
+const createInitialBlogs = (): Blog[] => [
+  {
+    id: 1,
+    title: "React 19の新機能について",
+    content: "React 19がリリースされ、多くの新機能が追加されました。",
+    category: 1,
+    created_at: "2024-12-14T15:30:00.000Z",
+    updated_at: "2024-12-15T10:00:00.000Z",
+  },
+  {
+    id: 2,
+    title: "TypeScript 5.3の型推論改善",
+    content: "TypeScript 5.3で型推論がさらに強化されました。",
+    category: 1,
+    created_at: "2024-12-13T14:20:00.000Z",
+    updated_at: "2024-12-14T09:30:00.000Z",
+  },
+  {
+    id: 3,
+    title: "週末の登山記録",
+    content: "週末に近くの山に登ってきました。天気も良く最高でした。",
+    category: 0,
+    created_at: "2024-12-12T18:45:00.000Z",
+    updated_at: "2024-12-13T08:15:00.000Z",
+  },
+];
+
+const createInitialComments = (): Comment[] => [
+  {
+    id: 1,
+    blog_id: 1,
+    user_name: "山田太郎",
+    comment: "とても参考になりました！",
+    created_at: "2024-12-15T12:00:00.000Z",
+    updated_at: "2024-12-15T12:00:00.000Z",
+  },
+  {
+    id: 2,
+    blog_id: 1,
+    user_name: "佐藤花子",
+    comment: "Server Componentsについてもっと知りたいです。",
+    created_at: "2024-12-15T13:30:00.000Z",
+    updated_at: "2024-12-15T13:30:00.000Z",
+  },
+];
+
+let blogs: Blog[] = createInitialBlogs();
+let comments: Comment[] = createInitialComments();
+
+let nextBlogId = Math.max(0, ...blogs.map((b) => b.id)) + 1;
+let nextCommentId = Math.max(0, ...comments.map((c) => c.id)) + 1;
+
+export const allocateBlogId = () => nextBlogId++;
+export const allocateCommentId = () => nextCommentId++;
+
 // セッションスコープでの一貫トークン管理（テスト対応版）
 let sessionToken: string | null = null;
+
+export const resetMockData = () => {
+  blogs = createInitialBlogs();
+  comments = createInitialComments();
+  nextBlogId = Math.max(0, ...blogs.map((b) => b.id)) + 1;
+  nextCommentId = Math.max(0, ...comments.map((c) => c.id)) + 1;
+  sessionToken = null;
+};
 
 const getDevToken = (): string => {
   const envToken = import.meta.env.VITE_DEV_AUTH_TOKEN;
