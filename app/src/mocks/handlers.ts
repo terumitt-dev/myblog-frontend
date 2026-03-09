@@ -5,11 +5,11 @@ import type { BlogCategory, Blog, Comment } from "@/types";
 const API_BASE = "/api";
 
 // カテゴリ名マッピング（フロントエンドの期待値に合わせる）
-const CATEGORY_NAMES = {
+const CATEGORY_NAMES: Record<BlogCategory, string> = {
   0: "hobby",
   1: "tech",
   2: "other",
-} as const satisfies Record<BlogCategory, string>;
+};
 
 // モックデータ（開発環境用）
 const createInitialBlogs = (): Blog[] => [
