@@ -61,12 +61,20 @@ const createInitialComments = (): Comment[] => [
 let blogs: Blog[] = createInitialBlogs();
 let comments: Comment[] = createInitialComments();
 
+let nextBlogId = Math.max(0, ...blogs.map((b) => b.id)) + 1;
+let nextCommentId = Math.max(0, ...comments.map((c) => c.id)) + 1;
+
+export const allocateBlogId = () => nextBlogId++;
+export const allocateCommentId = () => nextCommentId++;
+
 // セッションスコープでの一貫トークン管理（テスト対応版）
 let sessionToken: string | null = null;
 
 export const resetMockData = () => {
   blogs = createInitialBlogs();
   comments = createInitialComments();
+  nextBlogId = Math.max(0, ...blogs.map((b) => b.id)) + 1;
+  nextCommentId = Math.max(0, ...comments.map((c) => c.id)) + 1;
   sessionToken = null;
 };
 
