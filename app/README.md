@@ -24,6 +24,8 @@ npm install
 
 **チームメンバー向け:** Bitwarden で環境変数を一元管理する場合は、以下をセットアップしてください。
 
+#### 初回セットアップ
+
 ```bash
 # 1. Bitwarden CLI をインストール
 brew install bitwarden-cli
@@ -31,11 +33,65 @@ brew install bitwarden-cli
 # 2. Bitwarden にログイン
 bw login
 
-# 3. セッションをアンロック（シェルセッションごとに1回実行）
+# 3. シェル設定に便利関数を追加（初回のみ）
+cat >> ~/.zshrc << 'EOF'
+
+# ========================================
+# Bitwarden セッション管理
+# ========================================
+
+# Bitwarden アンロック関数
+bw_unlock() {
+    if command -v bw &> /dev/null; then
+        if bw login --check &> /dev/null; then
+            export BW_SESSION=$(bw unlock --raw)
+            echo "✅ Bitwarden unlocked"
+        else
+            echo "⚠️  Bitwarden: Not logged in. Run 'bw login' first."
+        fi
+    else
+        echo "⚠️  Bitwarden CLI not installed."
+    fi
+}
+
+# エイリアス（短縮版）
+alias bwu='bw_unlock'
+
+# MyBlog プロジェクト用の便利関数
+myblog_dev() {
+    cd ~/ghq/github.com/terumitt-dev/myblog-frontend/app
+    if command -v bw &> /dev/null && bw login --check &> /dev/null; then
+        if [ -z "$BW_SESSION" ]; then
+            echo "🔐 Unlocking Bitwarden..."
+            export BW_SESSION=$(bw unlock --raw)
+        else
+            echo "✅ Bitwarden session already active"
+        fi
+    fi
+}
+
+EOF
+
+# 4. 設定を反映
+source ~/.zshrc
+```
+
+#### 日常的な使い方
+
+```bash
+# 新しいターミナルを開いたら、以下のいずれかを実行
+
+# 方法1: 短縮コマンド
+bwu
+
+# 方法2: プロジェクトに移動 + 自動アンロック
+myblog_dev
+
+# 方法3: 手動
 export BW_SESSION=$(bw unlock --raw)
 ```
 
-**注意:** セッションは一時的です。ターミナルを閉じると消えるため、再度アンロックが必要です。
+**注意:** セッションは一時的です。ターミナルを閉じると消えるため、新しいターミナルでは再度アンロックが必要です。
 
 ### モード 1: モックデータを使用
 
