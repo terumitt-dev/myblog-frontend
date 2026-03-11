@@ -1,13 +1,13 @@
 #!/bin/bash
-# Bitwarden から環境変数を読み込むスクリプト
+# Bitwarden から環境変数を読み込むスクリプト（フォールバック機能付き）
 
 # 使い方を表示
 usage() {
     echo "Usage: $0 <environment> <command>"
     echo ""
     echo "Environments:"
-    echo "  api   - Load myblog-frontend-env-api (VITE_ENABLE_MSW=false)"
-    echo "  mock  - Load myblog-frontend-env-mock (VITE_ENABLE_MSW=true)"
+    echo "  api   - VITE_ENABLE_MSW=false"
+    echo "  mock  - VITE_ENABLE_MSW=true"
     echo ""
     echo "Example:"
     echo "  $0 api npm run dev"
@@ -23,12 +23,14 @@ fi
 ENV_TYPE=$1
 shift
 
-# 環境タイプに応じて Bitwarden アイテム名を決定
+# 環境タイプに応じて環境変数を決定
 case "$ENV_TYPE" in
     api)
+        FALLBACK_ENV="VITE_ENABLE_MSW=false"
         ITEM_NAME="myblog-frontend-env-api"
         ;;
     mock)
+        FALLBACK_ENV="VITE_ENABLE_MSW=true"
         ITEM_NAME="myblog-frontend-env-mock"
         ;;
     *)
@@ -37,37 +39,42 @@ case "$ENV_TYPE" in
         ;;
 esac
 
-# Bitwarden CLI がインストールされているか確認
+# Bitwarden CLI がインストールされているかチェック
 if ! command -v bw &> /dev/null; then
-    echo "Error: Bitwarden CLI is not installed."
-    echo "Install it with: brew install bitwarden-cli"
-    exit 1
+    echo "⚠️  Bitwarden CLI not found. Using fallback environment variables."
+    echo "   $FALLBACK_ENV"
+    export $FALLBACK_ENV
+    exec "$@"
 fi
 
-# Bitwarden にログインしているか確認
+# Bitwarden にログインしているかチェック
 if ! bw login --check &> /dev/null; then
-    echo "Error: Not logged in to Bitwarden."
-    echo "Run: bw login"
-    exit 1
+    echo "⚠️  Not logged in to Bitwarden. Using fallback environment variables."
+    echo "   $FALLBACK_ENV"
+    export $FALLBACK_ENV
+    exec "$@"
 fi
 
-# セッションキーが設定されているか確認
+# セッションキーが設定されているかチェック
 if [ -z "$BW_SESSION" ]; then
-    echo "Error: BW_SESSION is not set."
-    echo "Run: export BW_SESSION=\$(bw unlock --raw)"
-    exit 1
+    echo "⚠️  BW_SESSION not set. Using fallback environment variables."
+    echo "   $FALLBACK_ENV"
+    echo "   Tip: Run 'export BW_SESSION=\$(bw unlock --raw)' to use Bitwarden."
+    export $FALLBACK_ENV
+    exec "$@"
 fi
 
 # Bitwarden から環境変数を取得
 ENV_VARS=$(bw get notes "$ITEM_NAME" --session "$BW_SESSION" 2>/dev/null)
 
 if [ $? -ne 0 ]; then
-    echo "Error: Failed to fetch environment variables from Bitwarden."
-    echo "Make sure '$ITEM_NAME' item exists in your vault."
-    exit 1
+    echo "⚠️  Failed to fetch from Bitwarden. Using fallback environment variables."
+    echo "   $FALLBACK_ENV"
+    export $FALLBACK_ENV
+    exec "$@"
 fi
 
-echo "✅ Loaded environment: $ENV_TYPE ($ITEM_NAME)"
+echo "✅ Loaded environment from Bitwarden: $ENV_TYPE ($ITEM_NAME)"
 echo "   $ENV_VARS"
 
 # 環境変数をエクスポート

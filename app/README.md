@@ -18,9 +18,11 @@ npm install
 
 ## 🔧 開発サーバーの起動
 
-### 前提条件: Bitwarden CLI のセットアップ
+### Bitwarden CLI のセットアップ（オプション）
 
-すべての開発モードで Bitwarden CLI を使用します。
+**外部ユーザー向け:** Bitwarden のセットアップは不要です。自動的にフォールバック環境変数が使用されます。
+
+**チームメンバー向け:** Bitwarden で環境変数を一元管理する場合は、以下をセットアップしてください。
 
 ```bash
 # 1. Bitwarden CLI をインストール
@@ -33,6 +35,8 @@ bw login
 export BW_SESSION=$(bw unlock --raw)
 ```
 
+**注意:** セッションは一時的です。ターミナルを閉じると消えるため、再度アンロックが必要です。
+
 ### モード 1: モックデータを使用
 
 ```bash
@@ -40,7 +44,9 @@ npm run dev:mock
 ```
 
 MSW（Mock Service Worker）を使用してモックデータで開発します。
-Bitwarden から `myblog-frontend-env-mock` を読み込みます（`VITE_ENABLE_MSW=true`）。
+
+- **Bitwarden 利用時:** `myblog-frontend-env-mock` から読み込み
+- **フォールバック:** `VITE_ENABLE_MSW=true` を自動設定
 
 ### モード 2: 実 API を使用
 
@@ -49,7 +55,9 @@ npm run dev:api
 ```
 
 Backend API（`http://localhost:3000`）に接続して開発します。
-Bitwarden から `myblog-frontend-env-api` を読み込みます（`VITE_ENABLE_MSW=false`）。
+
+- **Bitwarden 利用時:** `myblog-frontend-env-api` から読み込み
+- **フォールバック:** `VITE_ENABLE_MSW=false` を自動設定
 
 ### モード 3: デフォルト（Bitwarden なし）
 
