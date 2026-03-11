@@ -18,25 +18,9 @@ npm install
 
 ## 🔧 開発サーバーの起動
 
-### オプション 1: モックデータを使用（デフォルト）
+### 前提条件: Bitwarden CLI のセットアップ
 
-```bash
-npm run dev
-# または
-npm run dev:mock
-```
-
-MSW（Mock Service Worker）を使用してモックデータで開発します。
-
-### オプション 2: 実 API を使用
-
-```bash
-npm run dev:api
-```
-
-Backend API（`http://localhost:3000`）に接続して開発します。
-
-### オプション 3: Bitwarden から環境変数を読み込む
+すべての開発モードで Bitwarden CLI を使用します。
 
 ```bash
 # 1. Bitwarden CLI をインストール
@@ -45,35 +29,70 @@ brew install bitwarden-cli
 # 2. Bitwarden にログイン
 bw login
 
-# 3. セッションをアンロック
+# 3. セッションをアンロック（シェルセッションごとに1回実行）
 export BW_SESSION=$(bw unlock --raw)
-
-# 4. 開発サーバーを起動
-npm run dev:bw
 ```
 
-Bitwarden に保存された環境変数を使用して開発します。
+### モード 1: モックデータを使用
+
+```bash
+npm run dev:mock
+```
+
+MSW（Mock Service Worker）を使用してモックデータで開発します。
+Bitwarden から `myblog-frontend-env-mock` を読み込みます（`VITE_ENABLE_MSW=true`）。
+
+### モード 2: 実 API を使用
+
+```bash
+npm run dev:api
+```
+
+Backend API（`http://localhost:3000`）に接続して開発します。
+Bitwarden から `myblog-frontend-env-api` を読み込みます（`VITE_ENABLE_MSW=false`）。
+
+### モード 3: デフォルト（Bitwarden なし）
+
+```bash
+npm run dev
+```
+
+Bitwarden を使用せず、デフォルト設定で起動します（開発環境では MSW 有効）。
 
 ## 🔐 Bitwarden 環境変数管理
 
-### 環境変数の保存
+### 保存されている環境設定
 
-```bash
-# Bitwarden にアイテムを作成
-bw get template item | jq '.type = 2 | .secureNote.type = 0 | .name = "myblog-frontend-env" | .notes = "VITE_ENABLE_MSW=false"' | bw encode | bw create item
-```
+プロジェクトでは以下の2つの環境設定が Bitwarden に保存されています：
+
+- **myblog-frontend-env-api**: 実 API モード（`VITE_ENABLE_MSW=false`）
+- **myblog-frontend-env-mock**: モックモード（`VITE_ENABLE_MSW=true`）
 
 ### 環境変数の確認
 
 ```bash
-bw get notes myblog-frontend-env
+# API モードの設定を確認
+bw get notes myblog-frontend-env-api
+
+# モックモードの設定を確認
+bw get notes myblog-frontend-env-mock
+```
+
+### 新しい環境設定の追加
+
+```bash
+# テンプレートを作成
+bw get template item | jq '.type = 2 | .secureNote.type = 0 | .name = "myblog-frontend-env-staging" | .notes = "VITE_ENABLE_MSW=false\nVITE_API_BASE_URL=https://staging-api.example.com"' > /tmp/staging_env.json
+
+# Bitwarden に保存
+cat /tmp/staging_env.json | bw encode | bw create item
 ```
 
 ### 環境変数の更新
 
 ```bash
-# アイテムを取得
-bw get item myblog-frontend-env | jq '.notes = "VITE_ENABLE_MSW=true"' | bw encode | bw edit item <item-id>
+# アイテムを取得して編集
+bw get item myblog-frontend-env-api | jq '.notes = "VITE_ENABLE_MSW=false\nVITE_API_BASE_URL=http://localhost:3000"' | bw encode | bw edit item <item-id>
 ```
 
 ## 📦 ビルド
