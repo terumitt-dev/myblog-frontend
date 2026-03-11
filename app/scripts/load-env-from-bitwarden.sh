@@ -74,8 +74,7 @@ if [ $? -ne 0 ]; then
     exec "$@"
 fi
 
-echo "✅ Loaded environment from Bitwarden: $ENV_TYPE ($ITEM_NAME)"
-echo "   $ENV_VARS"
+echo "✅ Loaded environment from Bitwarden: $ENV_TYPE"
 
 # 環境変数をエクスポート
 export $ENV_VARS
