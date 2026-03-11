@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "VITE_ENABLE_MSW=false vite",
+    "dev:mock": "VITE_ENABLE_MSW=true vite",
+    "dev:bw": "./scripts/load-env-from-bitwarden.sh npm run dev",
     "build": "tsc -b && vite build",
     "build:analyze": "tsc -b && vite build --mode analyze",
     "lint": "eslint .",
