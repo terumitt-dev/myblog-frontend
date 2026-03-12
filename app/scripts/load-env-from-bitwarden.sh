@@ -40,8 +40,12 @@ case "$ENV_TYPE" in
         ;;
 esac
 
+# 親プロセスからの値の持ち越しを防ぐ
+unset VITE_ENABLE_MSW VITE_API_BASE_URL
+
 apply_env_lines() {
     local input="$1"
+    local line name value key
     while IFS= read -r line; do
         line=${line%$'\r'}
 
@@ -81,40 +85,40 @@ apply_env_lines() {
 
 # Bitwarden CLI がインストールされているかチェック
 if ! command -v bw &> /dev/null; then
-    echo "⚠️  Bitwarden CLI not found. Using fallback environment variables."
-    echo "   $FALLBACK_ENV"
+    echo "⚠️  Bitwarden CLI not found. Using fallback environment variables." >&2
+    echo "   (fallback env applied)" >&2
     apply_env_lines "$FALLBACK_ENV"
     exec "$@"
 fi
 
 # Bitwarden にログインしているかチェック
 if ! bw login --check &> /dev/null; then
-    echo "⚠️  Not logged in to Bitwarden. Using fallback environment variables."
-    echo "   $FALLBACK_ENV"
+    echo "⚠️  Not logged in to Bitwarden. Using fallback environment variables." >&2
+    echo "   (fallback env applied)" >&2
     apply_env_lines "$FALLBACK_ENV"
     exec "$@"
 fi
 
 # セッションキーが設定されているかチェック
 if [ -z "${BW_SESSION-}" ]; then
-    echo "⚠️  BW_SESSION not set. Using fallback environment variables."
-    echo "   $FALLBACK_ENV"
-    echo "   Tip: Run 'export BW_SESSION=\$(bw unlock --raw)' to use Bitwarden."
+    echo "⚠️  BW_SESSION not set. Using fallback environment variables." >&2
+    echo "   (fallback env applied)" >&2
+    echo "   Tip: Run 'export BW_SESSION=\$(bw unlock --raw)' to use Bitwarden." >&2
     apply_env_lines "$FALLBACK_ENV"
     exec "$@"
 fi
 
 # Bitwarden から環境変数を取得
 if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" bw get notes "$ITEM_NAME" 2>/dev/null); then
-    echo "⚠️  Failed to fetch from Bitwarden. Using fallback environment variables."
-    echo "   $FALLBACK_ENV"
+    echo "⚠️  Failed to fetch from Bitwarden. Using fallback environment variables." >&2
+    echo "   (fallback env applied)" >&2
     apply_env_lines "$FALLBACK_ENV"
     exec "$@"
 fi
 
 if [ -z "$ENV_VARS" ]; then
-    echo "⚠️  Bitwarden item is empty. Using fallback environment variables."
-    echo "   $FALLBACK_ENV"
+    echo "⚠️  Bitwarden item is empty. Using fallback environment variables." >&2
+    echo "   (fallback env applied)" >&2
     apply_env_lines "$FALLBACK_ENV"
     exec "$@"
 fi
