@@ -81,18 +81,27 @@ fi
 
 echo "✅ Loaded environment from Bitwarden: $ENV_TYPE"
 
-# 環境変数をエクスポート（KEY=VALUE 形式のみ許可）
+# 環境変数をエクスポート（VITE_ プレフィックスのみ許可）
 while IFS= read -r line; do
     line=${line%$'\r'}
-    [[ -z "${line//[[:space:]]/}" ]] && continue
+
+    # trim spaces
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+
+    [[ -z "$line" ]] && continue
+
+    # allow "export KEY=VALUE"
+    [[ "$line" == export\ * ]] && line="${line#export }"
+
     case "$line" in
-        [A-Za-z_][A-Za-z0-9_]*=*)
+        VITE_[A-Za-z0-9_]*=*)
             name=${line%%=*}
             value=${line#*=}
             export "$name=$value"
             ;;
         *)
-            echo "⚠️  Skipped invalid env line: $line" >&2
+            echo "⚠️  Skipped non-VITE env line: $line" >&2
             ;;
     esac
 done <<< "$ENV_VARS"
