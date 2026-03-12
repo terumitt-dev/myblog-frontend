@@ -81,30 +81,41 @@ fi
 
 echo "✅ Loaded environment from Bitwarden: $ENV_TYPE"
 
-# 環境変数をエクスポート（VITE_ プレフィックスのみ許可）
-while IFS= read -r line; do
-    line=${line%$'\r'}
+apply_env_lines() {
+    local input="$1"
+    while IFS= read -r line; do
+        line=${line%$'\r'}
 
-    # trim spaces
-    line="${line#"${line%%[![:space:]]*}"}"
-    line="${line%"${line##*[![:space:]]}"}"
+        # trim spaces
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
 
-    [[ -z "$line" ]] && continue
+        [[ -z "$line" ]] && continue
 
-    # allow "export KEY=VALUE"
-    [[ "$line" == export\ * ]] && line="${line#export }"
+        # allow "export KEY=VALUE"
+        [[ "$line" == export\ * ]] && line="${line#export }"
 
-    case "$line" in
-        VITE_[A-Za-z0-9_]*=*)
-            name=${line%%=*}
-            value=${line#*=}
-            export "$name=$value"
-            ;;
-        *)
-            echo "⚠️  Skipped non-VITE env line: $line" >&2
-            ;;
-    esac
-done <<< "$ENV_VARS"
+        case "$line" in
+            VITE_[A-Za-z0-9_]*=*)
+                name=${line%%=*}
+                value=${line#*=}
+                export "$name=$value"
+                ;;
+            *)
+                key="${line%%=*}"
+                if [[ "$key" == "$line" ]]; then
+                    echo "⚠️  Skipped non-VITE env line" >&2
+                else
+                    echo "⚠️  Skipped non-VITE env key: $key" >&2
+                fi
+                ;;
+        esac
+    done <<< "$input"
+}
+
+# まずフォールバックのデフォルトを入れてから、Bitwarden の値で上書き
+apply_env_lines "$FALLBACK_ENV"
+apply_env_lines "$ENV_VARS"
 
 # 引数で渡されたコマンドを実行
 exec "$@"
