@@ -39,48 +39,6 @@ case "$ENV_TYPE" in
         ;;
 esac
 
-# Bitwarden CLI がインストールされているかチェック
-if ! command -v bw &> /dev/null; then
-    echo "⚠️  Bitwarden CLI not found. Using fallback environment variables."
-    echo "   $FALLBACK_ENV"
-    export "${FALLBACK_ENV}"
-    exec "$@"
-fi
-
-# Bitwarden にログインしているかチェック
-if ! bw login --check &> /dev/null; then
-    echo "⚠️  Not logged in to Bitwarden. Using fallback environment variables."
-    echo "   $FALLBACK_ENV"
-    export "${FALLBACK_ENV}"
-    exec "$@"
-fi
-
-# セッションキーが設定されているかチェック
-if [ -z "${BW_SESSION-}" ]; then
-    echo "⚠️  BW_SESSION not set. Using fallback environment variables."
-    echo "   $FALLBACK_ENV"
-    echo "   Tip: Run 'export BW_SESSION=\$(bw unlock --raw)' to use Bitwarden."
-    export "${FALLBACK_ENV}"
-    exec "$@"
-fi
-
-# Bitwarden から環境変数を取得
-if ! ENV_VARS=$(bw get notes "$ITEM_NAME" --session "$BW_SESSION" 2>/dev/null); then
-    echo "⚠️  Failed to fetch from Bitwarden. Using fallback environment variables."
-    echo "   $FALLBACK_ENV"
-    export "${FALLBACK_ENV}"
-    exec "$@"
-fi
-
-if [ -z "$ENV_VARS" ]; then
-    echo "⚠️  Bitwarden item is empty. Using fallback environment variables."
-    echo "   $FALLBACK_ENV"
-    export "${FALLBACK_ENV}"
-    exec "$@"
-fi
-
-echo "✅ Loaded environment from Bitwarden: $ENV_TYPE"
-
 apply_env_lines() {
     local input="$1"
     while IFS= read -r line; do
@@ -91,6 +49,7 @@ apply_env_lines() {
         line="${line%"${line##*[![:space:]]}"}"
 
         [[ -z "$line" ]] && continue
+        [[ "$line" == \#* ]] && continue
 
         # allow "export KEY=VALUE"
         [[ "$line" == export\ * ]] && line="${line#export }"
@@ -99,6 +58,12 @@ apply_env_lines() {
             VITE_[A-Za-z0-9_]*=*)
                 name=${line%%=*}
                 value=${line#*=}
+
+                # strip surrounding quotes: KEY="value" or KEY='value'
+                if [[ ( "$value" == \"*\" && "$value" == *\" ) || ( "$value" == \'*\' && "$value" == *\' ) ]]; then
+                    value="${value:1:-1}"
+                fi
+
                 export "$name=$value"
                 ;;
             *)
@@ -112,6 +77,48 @@ apply_env_lines() {
         esac
     done <<< "$input"
 }
+
+# Bitwarden CLI がインストールされているかチェック
+if ! command -v bw &> /dev/null; then
+    echo "⚠️  Bitwarden CLI not found. Using fallback environment variables."
+    echo "   $FALLBACK_ENV"
+    apply_env_lines "$FALLBACK_ENV"
+    exec "$@"
+fi
+
+# Bitwarden にログインしているかチェック
+if ! bw login --check &> /dev/null; then
+    echo "⚠️  Not logged in to Bitwarden. Using fallback environment variables."
+    echo "   $FALLBACK_ENV"
+    apply_env_lines "$FALLBACK_ENV"
+    exec "$@"
+fi
+
+# セッションキーが設定されているかチェック
+if [ -z "${BW_SESSION-}" ]; then
+    echo "⚠️  BW_SESSION not set. Using fallback environment variables."
+    echo "   $FALLBACK_ENV"
+    echo "   Tip: Run 'export BW_SESSION=\$(bw unlock --raw)' to use Bitwarden."
+    apply_env_lines "$FALLBACK_ENV"
+    exec "$@"
+fi
+
+# Bitwarden から環境変数を取得
+if ! ENV_VARS=$(bw get notes "$ITEM_NAME" --session "$BW_SESSION" 2>/dev/null); then
+    echo "⚠️  Failed to fetch from Bitwarden. Using fallback environment variables."
+    echo "   $FALLBACK_ENV"
+    apply_env_lines "$FALLBACK_ENV"
+    exec "$@"
+fi
+
+if [ -z "$ENV_VARS" ]; then
+    echo "⚠️  Bitwarden item is empty. Using fallback environment variables."
+    echo "   $FALLBACK_ENV"
+    apply_env_lines "$FALLBACK_ENV"
+    exec "$@"
+fi
+
+echo "✅ Loaded environment from Bitwarden: $ENV_TYPE"
 
 # まずフォールバックのデフォルトを入れてから、Bitwarden の値で上書き
 apply_env_lines "$FALLBACK_ENV"
