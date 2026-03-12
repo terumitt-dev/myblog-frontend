@@ -1,5 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Bitwarden から環境変数を読み込むスクリプト（フォールバック機能付き）
+set -euo pipefail
 
 # 使い方を表示
 usage() {
@@ -104,7 +105,7 @@ if [ -z "${BW_SESSION-}" ]; then
 fi
 
 # Bitwarden から環境変数を取得
-if ! ENV_VARS=$(bw get notes "$ITEM_NAME" --session "$BW_SESSION" 2>/dev/null); then
+if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" bw get notes "$ITEM_NAME" 2>/dev/null); then
     echo "⚠️  Failed to fetch from Bitwarden. Using fallback environment variables."
     echo "   $FALLBACK_ENV"
     apply_env_lines "$FALLBACK_ENV"
