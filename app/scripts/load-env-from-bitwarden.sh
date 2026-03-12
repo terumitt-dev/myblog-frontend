@@ -65,10 +65,15 @@ if [ -z "$BW_SESSION" ]; then
 fi
 
 # Bitwarden から環境変数を取得
-ENV_VARS=$(bw get notes "$ITEM_NAME" --session "$BW_SESSION" 2>/dev/null)
-
-if [ $? -ne 0 ]; then
+if ! ENV_VARS=$(bw get notes "$ITEM_NAME" --session "$BW_SESSION" 2>/dev/null); then
     echo "⚠️  Failed to fetch from Bitwarden. Using fallback environment variables."
+    echo "   $FALLBACK_ENV"
+    export $FALLBACK_ENV
+    exec "$@"
+fi
+
+if [ -z "$ENV_VARS" ]; then
+    echo "⚠️  Bitwarden item is empty. Using fallback environment variables."
     echo "   $FALLBACK_ENV"
     export $FALLBACK_ENV
     exec "$@"
@@ -76,8 +81,20 @@ fi
 
 echo "✅ Loaded environment from Bitwarden: $ENV_TYPE"
 
-# 環境変数をエクスポート
-export $ENV_VARS
+# 環境変数をエクスポート（KEY=VALUE 形式のみ許可）
+while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    case "$line" in
+        [A-Za-z_][A-Za-z0-9_]*=*)
+            name=${line%%=*}
+            value=${line#*=}
+            export "$name=$value"
+            ;;
+        *)
+            echo "⚠️  Skipped invalid env line: $line" >&2
+            ;;
+    esac
+done <<< "$ENV_VARS"
 
 # 引数で渡されたコマンドを実行
 exec "$@"
