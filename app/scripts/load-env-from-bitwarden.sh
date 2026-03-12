@@ -27,7 +27,7 @@ shift
 # 環境タイプに応じて環境変数を決定
 case "$ENV_TYPE" in
     api)
-        FALLBACK_ENV="VITE_ENABLE_MSW=false"
+        FALLBACK_ENV=$'VITE_ENABLE_MSW=false\nVITE_API_BASE_URL=http://localhost:3000'
         ITEM_NAME="myblog-frontend-env-api"
         ;;
     mock)

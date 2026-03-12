@@ -58,12 +58,20 @@ bw_unlock() {
 alias bwu='bw_unlock'
 
 # MyBlog プロジェクト用の便利関数
+# 事前に例: export MYBLOG_FRONTEND_DIR="$HOME/ghq/github.com/<your-org>/myblog-frontend/app"
 myblog_dev() {
-    cd ~/ghq/github.com/terumitt-dev/myblog-frontend/app
+    local dir="${MYBLOG_FRONTEND_DIR:-}"
+    if [ -z "$dir" ]; then
+        echo "⚠️  MYBLOG_FRONTEND_DIR が未設定です（例: \$HOME/.../myblog-frontend/app）"
+        return 1
+    fi
+
+    cd "$dir" || return 1
+
     if command -v bw &> /dev/null && bw login --check &> /dev/null; then
-        if [ -z "$BW_SESSION" ]; then
+        if [ -z "${BW_SESSION-}" ]; then
             echo "🔐 Unlocking Bitwarden..."
-            export BW_SESSION=$(bw unlock --raw)
+            export BW_SESSION="$(bw unlock --raw)"
         else
             echo "✅ Bitwarden session already active"
         fi
@@ -115,13 +123,15 @@ Backend API（`http://localhost:3000`）に接続して開発します。
 - **Bitwarden 利用時:** `myblog-frontend-env-api` から読み込み
 - **フォールバック:** `VITE_ENABLE_MSW=false` を自動設定
 
-### モード 3: デフォルト（Bitwarden なし）
+### モード 3: デフォルト（Bitwarden なし、MSW 有効）
+
+Bitwarden を使わずに **MSW を有効で** 起動したい場合は、以下を使用します（Bitwarden 未設定でもフォールバックします）。
 
 ```bash
-npm run dev
+npm run dev:mock
 ```
 
-Bitwarden を使用せず、デフォルト設定で起動します（開発環境では MSW 有効）。
+※ `npm run dev` は Vite の通常起動で、`.env` 等の設定に依存します。
 
 ## 🔐 Bitwarden 環境変数管理
 
