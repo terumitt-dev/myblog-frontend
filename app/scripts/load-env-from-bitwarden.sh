@@ -86,6 +86,12 @@ apply_env_lines() {
                 name=${line%%=*}
                 value=${line#*=}
 
+                # unquoted inline comments: KEY=value # comment
+                if [[ "$value" != \"* && "$value" != \'* ]]; then
+                    value="${value%%[[:space:]]#*}"
+                    value="${value%"${value##*[![:space:]]}"}"
+                fi
+
                 # strip surrounding quotes: KEY="value" or KEY='value'
                 if [[ ( "$value" == \"*\" && "$value" == *\" ) || ( "$value" == \'*\' && "$value" == *\' ) ]]; then
                     value="${value:1:-1}"
