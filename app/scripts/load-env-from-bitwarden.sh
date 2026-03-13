@@ -40,12 +40,30 @@ case "$ENV_TYPE" in
         ;;
 esac
 
-# 親プロセスからの値の持ち越しを防ぐ（既存の VITE_ 変数を全て解除）
-while IFS='=' read -r k _; do
-    if [[ "$k" == VITE_* ]]; then
-        unset "$k" 2>/dev/null || true
-    fi
-done < <(env)
+# 親プロセスからの値の持ち越しを防ぐ（このスクリプトが設定するキーだけ解除）
+unset_vite_keys() {
+    local input="$1" line name
+    while IFS= read -r line; do
+        line=${line%$'\r'}
+
+        # trim spaces
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+
+        [[ -z "$line" ]] && continue
+        [[ "$line" == \#* ]] && continue
+        [[ "$line" == export\ * ]] && line="${line#export }"
+
+        case "$line" in
+            VITE_[A-Za-z0-9_]*=*)
+                name=${line%%=*}
+                unset "$name" 2>/dev/null || true
+                ;;
+        esac
+    done <<< "$input"
+}
+
+unset_vite_keys "$FALLBACK_ENV"
 
 apply_env_lines() {
     local input="$1"
@@ -103,13 +121,25 @@ if ! bw login --check &> /dev/null; then
     exec "$@"
 fi
 
-# セッションキーが設定されているかチェック
+# セッションキーが設定されているかチェック（可能なら自動アンロック）
 if [ -z "${BW_SESSION-}" ]; then
-    echo "⚠️  BW_SESSION not set. Using fallback environment variables." >&2
-    echo "   (fallback env applied)" >&2
-    echo "   Tip: Run 'export BW_SESSION=\$(bw unlock --raw)' to use Bitwarden." >&2
-    apply_env_lines "$FALLBACK_ENV"
-    exec "$@"
+    if [ -t 0 ]; then
+        echo "🔐 BW_SESSION not set. Trying to unlock Bitwarden..." >&2
+        if BW_SESSION="$(bw unlock --raw 2>/dev/null)"; then
+            export BW_SESSION
+        else
+            echo "⚠️  Failed to unlock Bitwarden. Using fallback environment variables." >&2
+            echo "   (fallback env applied)" >&2
+            apply_env_lines "$FALLBACK_ENV"
+            exec "$@"
+        fi
+    else
+        echo "⚠️  BW_SESSION not set (non-interactive). Using fallback environment variables." >&2
+        echo "   (fallback env applied)" >&2
+        echo "   Tip: Run 'export BW_SESSION=\$(bw unlock --raw)' to use Bitwarden." >&2
+        apply_env_lines "$FALLBACK_ENV"
+        exec "$@"
+    fi
 fi
 
 # Bitwarden から環境変数を取得
