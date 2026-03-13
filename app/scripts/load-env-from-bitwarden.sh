@@ -42,7 +42,9 @@ esac
 
 # 親プロセスからの値の持ち越しを防ぐ（既存の VITE_ 変数を全て解除）
 while IFS='=' read -r k _; do
-    [[ "$k" == VITE_* ]] && unset "$k"
+    if [[ "$k" == VITE_* ]]; then
+        unset "$k" 2>/dev/null || true
+    fi
 done < <(env)
 
 apply_env_lines() {
@@ -125,7 +127,7 @@ if [ -z "$ENV_VARS" ]; then
     exec "$@"
 fi
 
-echo "✅ Loaded environment from Bitwarden: $ENV_TYPE"
+echo "✅ Loaded environment from Bitwarden: $ENV_TYPE" >&2
 
 # まずフォールバックのデフォルトを入れてから、Bitwarden の値で上書き
 apply_env_lines "$FALLBACK_ENV"
