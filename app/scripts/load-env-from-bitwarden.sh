@@ -135,7 +135,7 @@ fi
 if [ -z "${BW_SESSION-}" ]; then
     if [ -t 0 ]; then
         echo "🔐 BW_SESSION not set. Trying to unlock Bitwarden..." >&2
-        if BW_SESSION="$(bw unlock --raw 2>/dev/null)"; then
+        if BW_SESSION="$(bw unlock --raw </dev/tty)"; then
             export BW_SESSION
         else
             echo "⚠️  Failed to unlock Bitwarden. Using fallback environment variables." >&2
