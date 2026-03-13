@@ -115,12 +115,17 @@ apply_env_lines() {
     done <<< "$input"
 }
 
+exec_cmd() {
+    unset BW_SESSION 2>/dev/null || true
+    exec "$@"
+}
+
 # Bitwarden CLI がインストールされているかチェック
 if ! command -v bw &> /dev/null; then
     echo "⚠️  Bitwarden CLI not found. Using fallback environment variables." >&2
     echo "   (fallback env applied)" >&2
     apply_env_lines "$FALLBACK_ENV"
-    exec "$@"
+    exec_cmd "$@"
 fi
 
 # Bitwarden にログインしているかチェック
@@ -128,7 +133,7 @@ if ! bw login --check &> /dev/null; then
     echo "⚠️  Not logged in to Bitwarden. Using fallback environment variables." >&2
     echo "   (fallback env applied)" >&2
     apply_env_lines "$FALLBACK_ENV"
-    exec "$@"
+    exec_cmd "$@"
 fi
 
 # セッションキーが設定されているかチェック（可能なら自動アンロック）
@@ -141,14 +146,14 @@ if [ -z "${BW_SESSION-}" ]; then
             echo "⚠️  Failed to unlock Bitwarden. Using fallback environment variables." >&2
             echo "   (fallback env applied)" >&2
             apply_env_lines "$FALLBACK_ENV"
-            exec "$@"
+            exec_cmd "$@"
         fi
     else
         echo "⚠️  BW_SESSION not set (non-interactive). Using fallback environment variables." >&2
         echo "   (fallback env applied)" >&2
         echo "   Tip: Run 'export BW_SESSION=\$(bw unlock --raw)' to use Bitwarden." >&2
         apply_env_lines "$FALLBACK_ENV"
-        exec "$@"
+        exec_cmd "$@"
     fi
 fi
 
@@ -157,14 +162,14 @@ if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" bw get notes "$ITEM_NAME" 2>/dev/null);
     echo "⚠️  Failed to fetch from Bitwarden. Using fallback environment variables." >&2
     echo "   (fallback env applied)" >&2
     apply_env_lines "$FALLBACK_ENV"
-    exec "$@"
+    exec_cmd "$@"
 fi
 
 if [ -z "$ENV_VARS" ]; then
     echo "⚠️  Bitwarden item is empty. Using fallback environment variables." >&2
     echo "   (fallback env applied)" >&2
     apply_env_lines "$FALLBACK_ENV"
-    exec "$@"
+    exec_cmd "$@"
 fi
 
 echo "✅ Loaded environment from Bitwarden: $ENV_TYPE" >&2
@@ -175,5 +180,4 @@ apply_env_lines "$FALLBACK_ENV"
 apply_env_lines "$ENV_VARS"
 
 # 引数で渡されたコマンドを実行（BW セッションは引き継がない）
-unset BW_SESSION
-exec "$@"
+exec_cmd "$@"
