@@ -86,6 +86,10 @@ apply_env_lines() {
                 name=${line%%=*}
                 value=${line#*=}
 
+                # trim spaces around value
+                value="${value#"${value%%[![:space:]]*}"}"
+                value="${value%"${value##*[![:space:]]}"}"
+
                 # unquoted inline comments: KEY=value # comment
                 if [[ "$value" != \"* && "$value" != \'* ]]; then
                     value="${value%%[[:space:]]#*}"
@@ -165,7 +169,8 @@ fi
 
 echo "✅ Loaded environment from Bitwarden: $ENV_TYPE" >&2
 
-# まずフォールバックのデフォルトを入れてから、Bitwarden の値で上書き
+# まず対象キーを解除してから、フォールバック→Bitwarden の順に適用
+unset_vite_keys "$FALLBACK_ENV"$'\n'"$ENV_VARS"
 apply_env_lines "$FALLBACK_ENV"
 apply_env_lines "$ENV_VARS"
 
