@@ -31,7 +31,7 @@ case "$ENV_TYPE" in
         ITEM_NAME="myblog-frontend-env-api"
         ;;
     mock)
-        FALLBACK_ENV="VITE_ENABLE_MSW=true"
+        FALLBACK_ENV=$'VITE_ENABLE_MSW=true\nVITE_API_BASE_URL=http://localhost:3000'
         ITEM_NAME="myblog-frontend-env-mock"
         ;;
     *)
@@ -40,8 +40,10 @@ case "$ENV_TYPE" in
         ;;
 esac
 
-# 親プロセスからの値の持ち越しを防ぐ
-unset VITE_ENABLE_MSW VITE_API_BASE_URL
+# 親プロセスからの値の持ち越しを防ぐ（既存の VITE_ 変数を全て解除）
+while IFS='=' read -r k _; do
+    [[ "$k" == VITE_* ]] && unset "$k"
+done < <(env)
 
 apply_env_lines() {
     local input="$1"
@@ -129,5 +131,6 @@ echo "✅ Loaded environment from Bitwarden: $ENV_TYPE"
 apply_env_lines "$FALLBACK_ENV"
 apply_env_lines "$ENV_VARS"
 
-# 引数で渡されたコマンドを実行
+# 引数で渡されたコマンドを実行（BW セッションは引き継がない）
+unset BW_SESSION
 exec "$@"
