@@ -40,7 +40,15 @@ case "$ENV_TYPE" in
         ;;
 esac
 
-# 親プロセスからの値の持ち越しを防ぐ（このスクリプトが設定するキーだけ解除）
+# 親プロセスからの値の持ち越しを防ぐ（VITE_ プレフィックスを全解除）
+unset_all_vite_vars() {
+    local name
+    while IFS= read -r name; do
+        unset "$name" 2>/dev/null || true
+    done < <(compgen -v | grep -E '^VITE_')
+}
+
+# 必要に応じて特定キーだけ解除したい場合に利用
 unset_vite_keys() {
     local input="$1" line name
     while IFS= read -r line; do
@@ -63,7 +71,7 @@ unset_vite_keys() {
     done <<< "$input"
 }
 
-unset_vite_keys "$FALLBACK_ENV"
+unset_all_vite_vars
 
 apply_env_lines() {
     local input="$1"
@@ -165,8 +173,8 @@ if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" bw get notes "$ITEM_NAME" 2>/dev/null);
     exec_cmd "$@"
 fi
 
-if [ -z "$ENV_VARS" ]; then
-    echo "⚠️  Bitwarden item is empty. Using fallback environment variables." >&2
+if ! grep -qE '^[[:space:]]*(export[[:space:]]+)?VITE_[A-Za-z0-9_]+=' <<< "$ENV_VARS"; then
+    echo "⚠️  Bitwarden item has no valid VITE_ entries. Using fallback environment variables." >&2
     echo "   (fallback env applied)" >&2
     apply_env_lines "$FALLBACK_ENV"
     exec_cmd "$@"
