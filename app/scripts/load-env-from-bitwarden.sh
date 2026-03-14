@@ -60,7 +60,11 @@ unset_vite_keys() {
 
         [[ -z "$line" ]] && continue
         [[ "$line" == \#* ]] && continue
-        [[ "$line" == export\ * ]] && line="${line#export }"
+
+        # allow "export KEY=VALUE" (spaces/tabs supported)
+        if [[ "$line" =~ ^export[[:space:]]+(.+)$ ]]; then
+            line="${BASH_REMATCH[1]}"
+        fi
 
         case "$line" in
             VITE_[A-Za-z0-9_]*=*)
@@ -71,7 +75,8 @@ unset_vite_keys() {
     done <<< "$input"
 }
 
-unset_all_vite_vars
+# フォールバックで上書きするキーのみ初期化（利用者の他の VITE_* は保持）
+unset_vite_keys "$FALLBACK_ENV"
 
 apply_env_lines() {
     local input="$1"
@@ -86,8 +91,10 @@ apply_env_lines() {
         [[ -z "$line" ]] && continue
         [[ "$line" == \#* ]] && continue
 
-        # allow "export KEY=VALUE"
-        [[ "$line" == export\ * ]] && line="${line#export }"
+        # allow "export KEY=VALUE" (spaces/tabs supported)
+        if [[ "$line" =~ ^export[[:space:]]+(.+)$ ]]; then
+            line="${BASH_REMATCH[1]}"
+        fi
 
         case "$line" in
             VITE_[A-Za-z0-9_]*=*)
