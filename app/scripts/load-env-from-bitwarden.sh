@@ -45,7 +45,7 @@ unset_all_vite_vars() {
     local name
     while IFS= read -r name; do
         unset "$name" 2>/dev/null || true
-    done < <(compgen -v | grep -E '^VITE_')
+    done < <(compgen -v | grep -E '^VITE_' || true)
 }
 
 # 必要に応じて特定キーだけ解除したい場合に利用
@@ -98,15 +98,15 @@ apply_env_lines() {
                 value="${value#"${value%%[![:space:]]*}"}"
                 value="${value%"${value##*[![:space:]]}"}"
 
-                # unquoted inline comments: KEY=value # comment
-                if [[ "$value" != \"* && "$value" != \'* ]]; then
+                # 値のパース（引用符付き/なし、末尾コメント対応）
+                if [[ "$value" =~ ^\"(.*)\"[[:space:]]*(#.*)?$ ]]; then
+                    value="${BASH_REMATCH[1]}"
+                elif [[ "$value" =~ ^\'(.*)\'[[:space:]]*(#.*)?$ ]]; then
+                    value="${BASH_REMATCH[1]}"
+                else
+                    # unquoted inline comments: KEY=value # comment
                     value="${value%%[[:space:]]#*}"
                     value="${value%"${value##*[![:space:]]}"}"
-                fi
-
-                # strip surrounding quotes: KEY="value" or KEY='value'
-                if [[ ( "$value" == \"*\" && "$value" == *\" ) || ( "$value" == \'*\' && "$value" == *\' ) ]]; then
-                    value="${value:1:-1}"
                 fi
 
                 export "$name=$value"
