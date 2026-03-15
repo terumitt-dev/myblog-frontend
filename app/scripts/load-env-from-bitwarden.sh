@@ -34,7 +34,7 @@ fi
 case "$ENV_TYPE" in
     api)
         FALLBACK_ENV="VITE_ENABLE_MSW=false
-VITE_API_BASE_URL=https://go-lilaregard.com/api"
+VITE_API_BASE_URL=http://localhost:3000/api"
         ITEM_NAME="myblog-frontend-env-api"
         ;;
     mock)
