@@ -108,6 +108,14 @@ apply_env_lines() {
                 value="${value%"${value##*[![:space:]]}"}"
             fi
 
+            # 安全ガード（NUL文字、タブ、改行を含む値は無効）
+            # Note: while-readで行単位処理しているため改行は通常含まれないが、
+            # 引用符内に埋め込まれた制御文字を検出するため残す
+            if [[ "$value" =~ [$'\t\n\r\0'] ]]; then
+                echo "⚠️  Skipped invalid VITE value (contains control chars): $name" >&2
+                continue
+            fi
+
             # 値の長さ制限（4KB を超える値は拒否）
             if [[ ${#value} -gt 4096 ]]; then
                 echo "⚠️  Skipped invalid VITE value (too long): $name (${#value} bytes)" >&2
