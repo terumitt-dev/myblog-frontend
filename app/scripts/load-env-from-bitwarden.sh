@@ -152,15 +152,28 @@ if ! command -v bw &> /dev/null; then
     exec_cmd "$@"
 fi
 
-# Bitwarden にログインしているかチェック
-if ! bw login --check &> /dev/null; then
+# API Key でログイン（永続的な認証）
+if [[ -n "${BW_CLIENTID-}" && -n "${BW_CLIENTSECRET-}" ]]; then
+    echo "🔑 Logging in to Bitwarden with API Key..." >&2
+    if BW_SESSION="$(bw login --apikey --raw 2>/dev/null)" && [[ -n "$BW_SESSION" ]]; then
+        export BW_SESSION
+        echo "✅ Logged in to Bitwarden with API Key" >&2
+    else
+        echo "⚠️  Failed to login with API Key. Using fallback environment variables." >&2
+        echo "   (fallback env applied)" >&2
+        apply_env_lines "$FALLBACK_ENV"
+        exec_cmd "$@"
+    fi
+elif ! bw login --check &> /dev/null; then
+    # API Key がない場合は、通常のログインチェック
     echo "⚠️  Not logged in to Bitwarden. Using fallback environment variables." >&2
     echo "   (fallback env applied)" >&2
+    echo "   Tip: Set BW_CLIENTID and BW_CLIENTSECRET for permanent access" >&2
     apply_env_lines "$FALLBACK_ENV"
     exec_cmd "$@"
 fi
 
-# セッションキーが設定されているかチェック（可能なら自動アンロック）
+# セッションキーが設定されているかチェック（API Key でログインした場合はスキップ）
 if [ -z "${BW_SESSION-}" ]; then
     if [ -t 0 ]; then
         echo "🔐 BW_SESSION not set. Trying to unlock Bitwarden..." >&2
@@ -175,7 +188,7 @@ if [ -z "${BW_SESSION-}" ]; then
     else
         echo "⚠️  BW_SESSION not set (non-interactive). Using fallback environment variables." >&2
         echo "   (fallback env applied)" >&2
-        echo "   Tip: Run 'export BW_SESSION=\$(bw unlock --raw)' to use Bitwarden." >&2
+        echo "   Tip: Set BW_CLIENTID and BW_CLIENTSECRET for permanent access" >&2
         apply_env_lines "$FALLBACK_ENV"
         exec_cmd "$@"
     fi

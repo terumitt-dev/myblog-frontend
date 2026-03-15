@@ -10,4 +10,6 @@ services:
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
+      - BW_CLIENTID=${BW_CLIENTID:-}
+      - BW_CLIENTSECRET=${BW_CLIENTSECRET:-}
     command: ["npm", "run", "dev:mock", "--", "--host"]
