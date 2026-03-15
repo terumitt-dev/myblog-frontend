@@ -24,6 +24,12 @@ fi
 ENV_TYPE=$1
 shift
 
+# ENV_TYPE の検証（英数字のみ許可）
+if ! [[ "$ENV_TYPE" =~ ^[a-z]+$ ]]; then
+    echo "Error: Invalid environment type '$ENV_TYPE' (only lowercase letters allowed)" >&2
+    usage
+fi
+
 # 環境タイプに応じて環境変数を決定
 case "$ENV_TYPE" in
     api)
@@ -148,7 +154,7 @@ fi
 if [ -z "${BW_SESSION-}" ]; then
     if [ -t 0 ]; then
         echo "🔐 BW_SESSION not set. Trying to unlock Bitwarden..." >&2
-        if BW_SESSION="$(bw unlock --raw </dev/tty)"; then
+        if BW_SESSION="$(bw unlock --raw </dev/tty)" && [[ -n "$BW_SESSION" ]]; then
             export BW_SESSION
         else
             echo "⚠️  Failed to unlock Bitwarden. Using fallback environment variables." >&2
@@ -166,22 +172,22 @@ if [ -z "${BW_SESSION-}" ]; then
 fi
 
 # Bitwarden から環境変数を取得（timeout が無ければフォールバック）
-TIMEOUT_BIN=""
+local_timeout_bin=""
 if command -v timeout &> /dev/null; then
-    TIMEOUT_BIN="timeout"
+    local_timeout_bin="timeout"
 elif command -v gtimeout &> /dev/null; then
-    TIMEOUT_BIN="gtimeout"
+    local_timeout_bin="gtimeout"
 fi
 
-if [[ -n "$TIMEOUT_BIN" ]]; then
-    if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" "$TIMEOUT_BIN" 10 bw get notes "$ITEM_NAME" 2>/dev/null); then
+if [[ -n "$local_timeout_bin" ]]; then
+    if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" "$local_timeout_bin" 10 bw get notes "$ITEM_NAME" 2>/dev/null); then
         echo "⚠️  Failed to fetch from Bitwarden (item: $ITEM_NAME). Using fallback environment variables." >&2
         echo "   (fallback env applied)" >&2
         apply_env_lines "$FALLBACK_ENV"
         exec_cmd "$@"
     fi
 else
-    echo "⚠️  timeout コマンドが見つかりません。タイムアウト無しで Bitwarden 取得を実行します。" >&2
+    echo "⚠️  timeout command not found. Fetching from Bitwarden without timeout." >&2
     if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" bw get notes "$ITEM_NAME" 2>/dev/null); then
         echo "⚠️  Failed to fetch from Bitwarden (item: $ITEM_NAME). Using fallback environment variables." >&2
         echo "   (fallback env applied)" >&2
