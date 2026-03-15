@@ -119,6 +119,17 @@ apply_env_lines() {
                 continue
             fi
 
+            # 値の長さ制限（4KB を超える値は拒否）
+            if [[ ${#value} -gt 4096 ]]; then
+                echo "⚠️  Skipped invalid VITE value (too long): $name (${#value} bytes)" >&2
+                continue
+            fi
+
+            # 空の値は警告を出すが許可（明示的な空値設定の可能性）
+            if [[ -z "$value" ]]; then
+                echo "⚠️  Setting empty value for: $name" >&2
+            fi
+
             export "${name}=${value}"
         else
             key="${line%%=*}"
