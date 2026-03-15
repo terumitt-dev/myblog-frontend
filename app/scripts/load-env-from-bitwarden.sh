@@ -155,9 +155,29 @@ fi
 # API Key でログイン（永続的な認証）
 if [[ -n "${BW_CLIENTID-}" && -n "${BW_CLIENTSECRET-}" ]]; then
     echo "🔑 Logging in to Bitwarden with API Key..." >&2
-    if BW_SESSION="$(bw login --apikey --raw 2>/dev/null)" && [[ -n "$BW_SESSION" ]]; then
-        export BW_SESSION
+    # 既存のログインがある場合はログアウト
+    bw logout &>/dev/null || true
+    # API Key でログイン
+    if bw login --apikey &>/dev/null; then
         echo "✅ Logged in to Bitwarden with API Key" >&2
+        # マスターパスワードが設定されている場合、vault をアンロック
+        if [[ -n "${BW_PASSWORD-}" ]]; then
+            if BW_SESSION="$(echo "$BW_PASSWORD" | bw unlock --raw 2>/dev/null)" && [[ -n "$BW_SESSION" ]]; then
+                export BW_SESSION
+                echo "✅ Vault unlocked successfully" >&2
+            else
+                echo "⚠️  Failed to unlock vault. Using fallback environment variables." >&2
+                echo "   (fallback env applied)" >&2
+                apply_env_lines "$FALLBACK_ENV"
+                exec_cmd "$@"
+            fi
+        else
+            echo "⚠️  BW_PASSWORD not set. Using fallback environment variables." >&2
+            echo "   (fallback env applied)" >&2
+            echo "   Tip: Set BW_PASSWORD to unlock vault" >&2
+            apply_env_lines "$FALLBACK_ENV"
+            exec_cmd "$@"
+        fi
     else
         echo "⚠️  Failed to login with API Key. Using fallback environment variables." >&2
         echo "   (fallback env applied)" >&2
