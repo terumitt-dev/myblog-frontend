@@ -181,29 +181,43 @@ if [ -z "${BW_SESSION-}" ]; then
     fi
 fi
 
-# Bitwarden から環境変数を取得（timeout が無ければフォールバック）
-local_timeout_bin=""
-if command -v timeout &> /dev/null; then
-    local_timeout_bin="timeout"
-elif command -v gtimeout &> /dev/null; then
-    local_timeout_bin="gtimeout"
-fi
+# Bitwarden から環境変数を取得する関数
+fetch_item_notes() {
+    local items_json item_id notes
+    
+    # timeout コマンドの検出
+    local_timeout_bin=""
+    if command -v timeout &> /dev/null; then
+        local_timeout_bin="timeout"
+    elif command -v gtimeout &> /dev/null; then
+        local_timeout_bin="gtimeout"
+    fi
+    
+    # Bitwarden からアイテム一覧を取得
+    if [[ -n "$local_timeout_bin" ]]; then
+        items_json=$(BW_SESSION="$BW_SESSION" "$local_timeout_bin" 10 bw list items --search "$ITEM_NAME" 2>/dev/null) || return 1
+    else
+        echo "⚠️  timeout command not found. Fetching from Bitwarden without timeout." >&2
+        items_json=$(BW_SESSION="$BW_SESSION" bw list items --search "$ITEM_NAME" 2>/dev/null) || return 1
+    fi
+    
+    # jq で完全一致するアイテムの notes を取得
+    notes=$(echo "$items_json" | jq -r ".[] | select(.name == \"$ITEM_NAME\") | .notes // empty" | head -1)
+    
+    # notes が空の場合はエラー
+    if [[ -z "$notes" ]]; then
+        return 1
+    fi
+    
+    echo "$notes"
+}
 
-if [[ -n "$local_timeout_bin" ]]; then
-    if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" "$local_timeout_bin" 10 bw get notes "$ITEM_NAME" 2>/dev/null) || [[ -z "$ENV_VARS" ]]; then
-        echo "⚠️  Failed to fetch from Bitwarden (item: $ITEM_NAME). Using fallback environment variables." >&2
-        echo "   (fallback env applied)" >&2
-        apply_env_lines "$FALLBACK_ENV"
-        exec_cmd "$@"
-    fi
-else
-    echo "⚠️  timeout command not found. Fetching from Bitwarden without timeout." >&2
-    if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" bw get notes "$ITEM_NAME" 2>/dev/null) || [[ -z "$ENV_VARS" ]]; then
-        echo "⚠️  Failed to fetch from Bitwarden (item: $ITEM_NAME). Using fallback environment variables." >&2
-        echo "   (fallback env applied)" >&2
-        apply_env_lines "$FALLBACK_ENV"
-        exec_cmd "$@"
-    fi
+# Bitwarden から環境変数を取得
+if ! ENV_VARS=$(fetch_item_notes); then
+    echo "⚠️  Failed to fetch from Bitwarden (item: $ITEM_NAME). Using fallback environment variables." >&2
+    echo "   (fallback env applied)" >&2
+    apply_env_lines "$FALLBACK_ENV"
+    exec_cmd "$@"
 fi
 
 if ! grep -qE '^[[:space:]]*(export[[:space:]]+)?VITE_[A-Za-z0-9_]+=' <<< "$ENV_VARS"; then
