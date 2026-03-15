@@ -46,6 +46,12 @@ case "$ENV_TYPE" in
         ;;
 esac
 
+# FALLBACK_ENV の検証（空でないことを確認）
+if [[ -z "$FALLBACK_ENV" ]]; then
+    echo "Error: FALLBACK_ENV is empty" >&2
+    exit 1
+fi
+
 # ITEM_NAME の検証（英数字、ハイフン、アンダースコアのみ許可）
 if ! [[ "$ITEM_NAME" =~ ^[A-Za-z0-9_-]+$ ]]; then
     echo "Error: Invalid ITEM_NAME '$ITEM_NAME'" >&2
@@ -180,7 +186,7 @@ elif command -v gtimeout &> /dev/null; then
 fi
 
 if [[ -n "$local_timeout_bin" ]]; then
-    if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" "$local_timeout_bin" 10 bw get notes "$ITEM_NAME" 2>/dev/null); then
+    if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" "$local_timeout_bin" 10 bw get notes "$ITEM_NAME" 2>/dev/null) || [[ -z "$ENV_VARS" ]]; then
         echo "⚠️  Failed to fetch from Bitwarden (item: $ITEM_NAME). Using fallback environment variables." >&2
         echo "   (fallback env applied)" >&2
         apply_env_lines "$FALLBACK_ENV"
@@ -188,7 +194,7 @@ if [[ -n "$local_timeout_bin" ]]; then
     fi
 else
     echo "⚠️  timeout command not found. Fetching from Bitwarden without timeout." >&2
-    if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" bw get notes "$ITEM_NAME" 2>/dev/null); then
+    if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" bw get notes "$ITEM_NAME" 2>/dev/null) || [[ -z "$ENV_VARS" ]]; then
         echo "⚠️  Failed to fetch from Bitwarden (item: $ITEM_NAME). Using fallback environment variables." >&2
         echo "   (fallback env applied)" >&2
         apply_env_lines "$FALLBACK_ENV"
