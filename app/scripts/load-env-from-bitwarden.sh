@@ -4,15 +4,15 @@ set -euo pipefail
 
 # 使い方を表示
 usage() {
-    echo "Usage: $0 <environment> <command>"
-    echo ""
-    echo "Environments:"
-    echo "  api   - VITE_ENABLE_MSW=false"
-    echo "  mock  - VITE_ENABLE_MSW=true"
-    echo ""
-    echo "Example:"
-    echo "  $0 api npm run dev"
-    echo "  $0 mock npm run dev"
+    echo "Usage: $0 <environment> <command>" >&2
+    echo "" >&2
+    echo "Environments:" >&2
+    echo "  api   - VITE_ENABLE_MSW=false" >&2
+    echo "  mock  - VITE_ENABLE_MSW=true" >&2
+    echo "" >&2
+    echo "Example:" >&2
+    echo "  $0 api npm run dev" >&2
+    echo "  $0 mock npm run dev" >&2
     exit 1
 }
 
@@ -35,10 +35,16 @@ case "$ENV_TYPE" in
         ITEM_NAME="myblog-frontend-env-mock"
         ;;
     *)
-        echo "Error: Invalid environment type '$ENV_TYPE'"
+        echo "Error: Invalid environment type '$ENV_TYPE'" >&2
         usage
         ;;
 esac
+
+# ITEM_NAME の検証（英数字、ハイフン、アンダースコアのみ許可）
+if ! [[ "$ITEM_NAME" =~ ^[A-Za-z0-9_-]+$ ]]; then
+    echo "Error: Invalid ITEM_NAME '$ITEM_NAME'" >&2
+    exit 1
+fi
 
 # 親プロセスからの値の持ち越しを防ぐ（VITE_ プレフィックスを全解除）
 unset_all_vite_vars() {
@@ -46,31 +52,6 @@ unset_all_vite_vars() {
     while IFS= read -r name; do
         unset "$name" 2>/dev/null || true
     done < <(compgen -v | grep -E '^VITE_' || true)
-}
-
-# 必要に応じて特定キーだけ解除したい場合に利用
-unset_vite_keys() {
-    local input="$1" line name
-    while IFS= read -r line; do
-        line=${line%$'\r'}
-
-        # trim spaces
-        line="${line#"${line%%[![:space:]]*}"}"
-        line="${line%"${line##*[![:space:]]}"}"
-
-        [[ -z "$line" ]] && continue
-        [[ "$line" == \#* ]] && continue
-
-        # allow "export KEY=VALUE" (spaces/tabs supported)
-        if [[ "$line" =~ ^export[[:space:]]+(.+)$ ]]; then
-            line="${BASH_REMATCH[1]}"
-        fi
-
-        if [[ "$line" =~ ^(VITE_[A-Za-z0-9_]+)= ]]; then
-            name="${BASH_REMATCH[1]}"
-            unset "$name" 2>/dev/null || true
-        fi
-    done <<< "$input"
 }
 
 # 親プロセスからの値の持ち越しを防ぐため、VITE_* を全解除してから適用する
@@ -185,8 +166,8 @@ if [ -z "${BW_SESSION-}" ]; then
 fi
 
 # Bitwarden から環境変数を取得
-if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" bw get notes "$ITEM_NAME" 2>/dev/null); then
-    echo "⚠️  Failed to fetch from Bitwarden. Using fallback environment variables." >&2
+if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" timeout 10 bw get notes "$ITEM_NAME" 2>/dev/null); then
+    echo "⚠️  Failed to fetch from Bitwarden (item: $ITEM_NAME). Using fallback environment variables." >&2
     echo "   (fallback env applied)" >&2
     apply_env_lines "$FALLBACK_ENV"
     exec_cmd "$@"
