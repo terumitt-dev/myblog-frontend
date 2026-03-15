@@ -73,8 +73,8 @@ unset_vite_keys() {
     done <<< "$input"
 }
 
-# フォールバックで上書きするキーのみ初期化（利用者の他の VITE_* は保持）
-unset_vite_keys "$FALLBACK_ENV"
+# 親プロセスからの値の持ち越しを防ぐため、VITE_* を全解除してから適用する
+unset_all_vite_vars
 
 apply_env_lines() {
     local input="$1"
@@ -111,6 +111,12 @@ apply_env_lines() {
                 # unquoted inline comments: KEY=value # comment
                 value="${value%%[[:space:]]#*}"
                 value="${value%"${value##*[![:space:]]}"}"
+            fi
+
+            # 安全ガード（改行/NUL を含む値は無効）
+            if [[ "$value" == *$'\n'* || "$value" == *$'\0'* ]]; then
+                echo "⚠️  Skipped invalid VITE value (contains control chars): $name" >&2
+                continue
             fi
 
             export "${name}=${value}"
@@ -184,8 +190,8 @@ fi
 
 echo "✅ Loaded environment from Bitwarden: $ENV_TYPE" >&2
 
-# まず対象キーを解除してから、フォールバック→Bitwarden の順に適用
-unset_vite_keys "$FALLBACK_ENV"$'\n'"$ENV_VARS"
+# まず VITE_* を全解除してから、フォールバック→Bitwarden の順に適用
+unset_all_vite_vars
 apply_env_lines "$FALLBACK_ENV"
 apply_env_lines "$ENV_VARS"
 
