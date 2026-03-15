@@ -33,11 +33,13 @@ fi
 # 環境タイプに応じて環境変数を決定
 case "$ENV_TYPE" in
     api)
-        FALLBACK_ENV=$'VITE_ENABLE_MSW=false\nVITE_API_BASE_URL=http://localhost:3000'
+        FALLBACK_ENV="VITE_ENABLE_MSW=false
+VITE_API_BASE_URL=https://go-lilaregard.com/api"
         ITEM_NAME="myblog-frontend-env-api"
         ;;
     mock)
-        FALLBACK_ENV=$'VITE_ENABLE_MSW=true\nVITE_API_BASE_URL=http://localhost:3000'
+        FALLBACK_ENV="VITE_ENABLE_MSW=true
+VITE_API_BASE_URL=http://localhost:3000/api"
         ITEM_NAME="myblog-frontend-env-mock"
         ;;
     *)
@@ -104,12 +106,6 @@ apply_env_lines() {
                 # unquoted inline comments: KEY=value # comment
                 value="${value%%[[:space:]]#*}"
                 value="${value%"${value##*[![:space:]]}"}"
-            fi
-
-            # 安全ガード（改行/NUL を含む値は無効）
-            if [[ "$value" == *$'\n'* || "$value" == *$'\0'* ]]; then
-                echo "⚠️  Skipped invalid VITE value (contains control chars): $name" >&2
-                continue
             fi
 
             # 値の長さ制限（4KB を超える値は拒否）

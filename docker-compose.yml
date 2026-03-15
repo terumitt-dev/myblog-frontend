@@ -10,4 +10,4 @@ services:
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
-    command: ["npm", "run", "dev", "--", "--host"]
+    command: ["npm", "run", "dev:mock", "--", "--host"]
