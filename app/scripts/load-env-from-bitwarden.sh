@@ -66,12 +66,10 @@ unset_vite_keys() {
             line="${BASH_REMATCH[1]}"
         fi
 
-        case "$line" in
-            VITE_[A-Za-z0-9_]*=*)
-                name=${line%%=*}
-                unset "$name" 2>/dev/null || true
-                ;;
-        esac
+        if [[ "$line" =~ ^(VITE_[A-Za-z0-9_]+)= ]]; then
+            name="${BASH_REMATCH[1]}"
+            unset "$name" 2>/dev/null || true
+        fi
     done <<< "$input"
 }
 
@@ -96,37 +94,34 @@ apply_env_lines() {
             line="${BASH_REMATCH[1]}"
         fi
 
-        case "$line" in
-            VITE_[A-Za-z0-9_]*=*)
-                name=${line%%=*}
-                value=${line#*=}
+        if [[ "$line" =~ ^(VITE_[A-Za-z0-9_]+)=(.*)$ ]]; then
+            name="${BASH_REMATCH[1]}"
+            value="${BASH_REMATCH[2]}"
 
-                # trim spaces around value
-                value="${value#"${value%%[![:space:]]*}"}"
+            # trim spaces around value
+            value="${value#"${value%%[![:space:]]*}"}"
+            value="${value%"${value##*[![:space:]]}"}"
+
+            # 値のパース（引用符付き/なし、末尾コメント対応）
+            if [[ "$value" =~ ^\"(.*)\"[[:space:]]*(#.*)?$ ]]; then
+                value="${BASH_REMATCH[1]}"
+            elif [[ "$value" =~ ^\'(.*)\'[[:space:]]*(#.*)?$ ]]; then
+                value="${BASH_REMATCH[1]}"
+            else
+                # unquoted inline comments: KEY=value # comment
+                value="${value%%[[:space:]]#*}"
                 value="${value%"${value##*[![:space:]]}"}"
+            fi
 
-                # 値のパース（引用符付き/なし、末尾コメント対応）
-                if [[ "$value" =~ ^\"(.*)\"[[:space:]]*(#.*)?$ ]]; then
-                    value="${BASH_REMATCH[1]}"
-                elif [[ "$value" =~ ^\'(.*)\'[[:space:]]*(#.*)?$ ]]; then
-                    value="${BASH_REMATCH[1]}"
-                else
-                    # unquoted inline comments: KEY=value # comment
-                    value="${value%%[[:space:]]#*}"
-                    value="${value%"${value##*[![:space:]]}"}"
-                fi
-
-                export "$name=$value"
-                ;;
-            *)
-                key="${line%%=*}"
-                if [[ "$key" == "$line" ]]; then
-                    echo "⚠️  Skipped non-VITE env line" >&2
-                else
-                    echo "⚠️  Skipped non-VITE env key: $key" >&2
-                fi
-                ;;
-        esac
+            export "${name}=${value}"
+        else
+            key="${line%%=*}"
+            if [[ "$key" == "$line" ]]; then
+                echo "⚠️  Skipped non-VITE env line" >&2
+            else
+                echo "⚠️  Skipped non-VITE env key: $key" >&2
+            fi
+        fi
     done <<< "$input"
 }
 
