@@ -165,12 +165,29 @@ if [ -z "${BW_SESSION-}" ]; then
     fi
 fi
 
-# Bitwarden から環境変数を取得
-if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" timeout 10 bw get notes "$ITEM_NAME" 2>/dev/null); then
-    echo "⚠️  Failed to fetch from Bitwarden (item: $ITEM_NAME). Using fallback environment variables." >&2
-    echo "   (fallback env applied)" >&2
-    apply_env_lines "$FALLBACK_ENV"
-    exec_cmd "$@"
+# Bitwarden から環境変数を取得（timeout が無ければフォールバック）
+TIMEOUT_BIN=""
+if command -v timeout &> /dev/null; then
+    TIMEOUT_BIN="timeout"
+elif command -v gtimeout &> /dev/null; then
+    TIMEOUT_BIN="gtimeout"
+fi
+
+if [[ -n "$TIMEOUT_BIN" ]]; then
+    if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" "$TIMEOUT_BIN" 10 bw get notes "$ITEM_NAME" 2>/dev/null); then
+        echo "⚠️  Failed to fetch from Bitwarden (item: $ITEM_NAME). Using fallback environment variables." >&2
+        echo "   (fallback env applied)" >&2
+        apply_env_lines "$FALLBACK_ENV"
+        exec_cmd "$@"
+    fi
+else
+    echo "⚠️  timeout コマンドが見つかりません。タイムアウト無しで Bitwarden 取得を実行します。" >&2
+    if ! ENV_VARS=$(BW_SESSION="$BW_SESSION" bw get notes "$ITEM_NAME" 2>/dev/null); then
+        echo "⚠️  Failed to fetch from Bitwarden (item: $ITEM_NAME). Using fallback environment variables." >&2
+        echo "   (fallback env applied)" >&2
+        apply_env_lines "$FALLBACK_ENV"
+        exec_cmd "$@"
+    fi
 fi
 
 if ! grep -qE '^[[:space:]]*(export[[:space:]]+)?VITE_[A-Za-z0-9_]+=' <<< "$ENV_VARS"; then
