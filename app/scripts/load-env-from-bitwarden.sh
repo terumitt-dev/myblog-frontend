@@ -155,6 +155,10 @@ if ! command -v bw &> /dev/null || ! command -v jq &> /dev/null; then
     exec_cmd "$@"
 fi
 
+# API Key 名を統一（BW_CLIENT_ID / BW_CLIENT_SECRET も受け付ける）
+export BW_CLIENTID="${BW_CLIENTID:-${BW_CLIENT_ID:-}}"
+export BW_CLIENTSECRET="${BW_CLIENTSECRET:-${BW_CLIENT_SECRET:-}}"
+
 # 既存の BW_SESSION を優先利用（ただし有効性を検証）
 if [[ -n "${BW_SESSION-}" ]]; then
     if BW_SESSION="$BW_SESSION" bw list items --search "$ITEM_NAME" >/dev/null 2>&1; then
