@@ -54,26 +54,35 @@ docker-compose up -d
 
 ### Drone CI/CD での設定
 
-Drone Secrets に以下を登録：
+**1. Drone Secrets に登録**
+
+Drone Web UI で以下の Secret を登録します：
 - `bw_client_id`: Bitwarden API Client ID
 - `bw_client_secret`: Bitwarden API Client Secret
 - `bw_password`: Bitwarden Master Password
 
-`.drone.yml` の例：
+**2. `.drone.yml` の設定**
+
 ```yaml
 steps:
   - name: deploy
     image: docker/compose:latest
     environment:
-      BW_CLIENTID:
+      # ホスト側の環境変数名（docker-compose.yml で参照）
+      BW_CLIENT_ID:
         from_secret: bw_client_id
-      BW_CLIENTSECRET:
+      BW_CLIENT_SECRET:
         from_secret: bw_client_secret
       BW_PASSWORD:
         from_secret: bw_password
     commands:
       - docker-compose up -d
 ```
+
+**環境変数のマッピング:**
+- `BW_CLIENT_ID` (Drone Secret) → `BW_CLIENTID` (コンテナ内)
+- `BW_CLIENT_SECRET` (Drone Secret) → `BW_CLIENTSECRET` (コンテナ内)
+- `BW_PASSWORD` (Drone Secret) → `BW_PASSWORD` (コンテナ内)
 
 ### 保存されている環境設定
 
