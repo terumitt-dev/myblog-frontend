@@ -143,7 +143,7 @@ apply_env_lines() {
 }
 
 exec_cmd() {
-    unset BW_SESSION BW_PASSWORD BW_CLIENTID BW_CLIENTSECRET 2>/dev/null || true
+    unset BW_SESSION BW_PASSWORD BW_CLIENTID BW_CLIENTSECRET BW_CLIENT_ID BW_CLIENT_SECRET 2>/dev/null || true
     exec "$@"
 }
 
@@ -272,6 +272,10 @@ fetch_item_notes() {
 
 # Bitwarden から環境変数を取得
 if ! ENV_VARS=$(fetch_item_notes); then
+    if [[ -n "${BW_SESSION-}" || -n "${BW_CLIENTID-}" || -n "${BW_CLIENTSECRET-}" || -n "${BW_CLIENT_ID-}" || -n "${BW_CLIENT_SECRET-}" ]]; then
+        echo "❌ Failed to fetch from Bitwarden (item: $ITEM_NAME). Aborting because Bitwarden auth is configured." >&2
+        exit 1
+    fi
     echo "⚠️  Failed to fetch from Bitwarden (item: $ITEM_NAME). Using fallback environment variables." >&2
     echo "   (fallback env applied)" >&2
     apply_env_lines "$FALLBACK_ENV"
