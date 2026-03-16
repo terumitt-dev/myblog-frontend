@@ -140,7 +140,7 @@ apply_env_lines() {
 }
 
 exec_cmd() {
-    unset BW_SESSION BW_PASSWORD BW_CLIENT_ID BW_CLIENT_SECRET 2>/dev/null || true
+    unset BW_SESSION BW_PASSWORD BW_CLIENTID BW_CLIENTSECRET 2>/dev/null || true
     exec "$@"
 }
 
@@ -156,7 +156,7 @@ fi
 if [[ -n "${BW_SESSION-}" ]]; then
     echo "✅ Using existing Bitwarden session" >&2
 # API Key でログイン（永続的な認証）
-elif [[ -n "${BW_CLIENT_ID-}" && -n "${BW_CLIENT_SECRET-}" ]]; then
+elif [[ -n "${BW_CLIENTID-}" && -n "${BW_CLIENTSECRET-}" ]]; then
     echo "🔑 Logging in to Bitwarden with API Key..." >&2
     # API Key でログイン
     if bw login --apikey &>/dev/null; then
@@ -167,8 +167,16 @@ elif [[ -n "${BW_CLIENT_ID-}" && -n "${BW_CLIENT_SECRET-}" ]]; then
                 export BW_SESSION
                 echo "✅ Vault unlocked successfully" >&2
             else
-                echo "⚠️  Could not unlock vault with password. Continuing with API Key authentication." >&2
+                echo "⚠️  Failed to unlock vault. Using fallback environment variables." >&2
+                echo "   (fallback env applied)" >&2
+                apply_env_lines "$FALLBACK_ENV"
+                exec_cmd "$@"
             fi
+        else
+            echo "⚠️  BW_PASSWORD not set. API Key requires password to unlock vault. Using fallback environment variables." >&2
+            echo "   (fallback env applied)" >&2
+            apply_env_lines "$FALLBACK_ENV"
+            exec_cmd "$@"
         fi
     else
         echo "⚠️  Failed to login with API Key. Using fallback environment variables." >&2
@@ -187,7 +195,7 @@ fi
 
 # セッションキーが設定されているかチェック（API Key でログインした場合はスキップ）
 # API Key でログインした場合は BW_SESSION がなくても動作する
-if [ -z "${BW_SESSION-}" ] && [ -z "${BW_CLIENT_ID-}" ]; then
+if [ -z "${BW_SESSION-}" ] && [ -z "${BW_CLIENTID-}" ]; then
     if [ -t 0 ]; then
         echo "🔐 BW_SESSION not set. Trying to unlock Bitwarden..." >&2
         if BW_SESSION="$(bw unlock --raw </dev/tty)" && [[ -n "$BW_SESSION" ]]; then
@@ -201,7 +209,7 @@ if [ -z "${BW_SESSION-}" ] && [ -z "${BW_CLIENT_ID-}" ]; then
     else
         echo "⚠️  BW_SESSION not set (non-interactive). Using fallback environment variables." >&2
         echo "   (fallback env applied)" >&2
-        echo "   Tip: Set BW_CLIENT_ID and BW_CLIENT_SECRET for permanent access" >&2
+        echo "   Tip: Set BW_CLIENTID and BW_CLIENTSECRET for permanent access" >&2
         apply_env_lines "$FALLBACK_ENV"
         exec_cmd "$@"
     fi
