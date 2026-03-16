@@ -30,16 +30,19 @@ if ! [[ "$ENV_TYPE" =~ ^[a-z]+$ ]]; then
     usage
 fi
 
+# デフォルト API ベース URL（外部から渡された値を優先）
+DEFAULT_API_BASE_URL="${VITE_API_BASE_URL:-http://localhost:3000/api}"
+
 # 環境タイプに応じて環境変数を決定
 case "$ENV_TYPE" in
     api)
         FALLBACK_ENV="VITE_ENABLE_MSW=false
-VITE_API_BASE_URL=http://localhost:3000/api"
+VITE_API_BASE_URL=${DEFAULT_API_BASE_URL}"
         ITEM_NAME="myblog-frontend-env-api"
         ;;
     mock)
         FALLBACK_ENV="VITE_ENABLE_MSW=true
-VITE_API_BASE_URL=http://localhost:3000/api"
+VITE_API_BASE_URL=${DEFAULT_API_BASE_URL}"
         ITEM_NAME="myblog-frontend-env-mock"
         ;;
     *)
@@ -152,11 +155,18 @@ if ! command -v bw &> /dev/null || ! command -v jq &> /dev/null; then
     exec_cmd "$@"
 fi
 
-# 既存の BW_SESSION を優先利用
+# 既存の BW_SESSION を優先利用（ただし有効性を検証）
 if [[ -n "${BW_SESSION-}" ]]; then
-    echo "✅ Using existing Bitwarden session" >&2
+    if BW_SESSION="$BW_SESSION" bw list items --search "$ITEM_NAME" >/dev/null 2>&1; then
+        echo "✅ Using existing Bitwarden session" >&2
+    else
+        echo "⚠️  Existing BW_SESSION is invalid or expired. Trying API Key login instead." >&2
+        unset BW_SESSION
+    fi
+fi
+
 # API Key でログイン（永続的な認証）
-elif [[ -n "${BW_CLIENTID-}" && -n "${BW_CLIENTSECRET-}" ]]; then
+if [[ -z "${BW_SESSION-}" && -n "${BW_CLIENTID-}" && -n "${BW_CLIENTSECRET-}" ]]; then
     echo "🔑 Logging in to Bitwarden with API Key..." >&2
     # API Key でログイン
     if bw login --apikey &>/dev/null; then
@@ -184,8 +194,7 @@ elif [[ -n "${BW_CLIENTID-}" && -n "${BW_CLIENTSECRET-}" ]]; then
         apply_env_lines "$FALLBACK_ENV"
         exec_cmd "$@"
     fi
-elif ! bw login --check &> /dev/null; then
-    # API Key がない場合は、通常のログインチェック
+elif [[ -z "${BW_SESSION-}" ]] && ! bw login --check &> /dev/null; then
     echo "⚠️  Not logged in to Bitwarden. Using fallback environment variables." >&2
     echo "   (fallback env applied)" >&2
     echo "   Tip: Set BW_CLIENTID and BW_CLIENTSECRET for permanent access" >&2
