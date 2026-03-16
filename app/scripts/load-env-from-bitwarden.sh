@@ -140,7 +140,7 @@ apply_env_lines() {
 }
 
 exec_cmd() {
-    unset BW_SESSION 2>/dev/null || true
+    unset BW_SESSION BW_PASSWORD BW_CLIENTID BW_CLIENTSECRET 2>/dev/null || true
     exec "$@"
 }
 
@@ -163,7 +163,7 @@ elif [[ -n "${BW_CLIENTID-}" && -n "${BW_CLIENTSECRET-}" ]]; then
         echo "✅ Logged in to Bitwarden with API Key" >&2
         # マスターパスワードが設定されている場合、vault をアンロック
         if [[ -n "${BW_PASSWORD-}" ]]; then
-            if BW_SESSION="$(echo "$BW_PASSWORD" | bw unlock --raw 2>/dev/null)" && [[ -n "$BW_SESSION" ]]; then
+            if BW_SESSION="$(bw unlock --passwordenv BW_PASSWORD --raw 2>/dev/null)" && [[ -n "$BW_SESSION" ]]; then
                 export BW_SESSION
                 echo "✅ Vault unlocked successfully" >&2
             else
