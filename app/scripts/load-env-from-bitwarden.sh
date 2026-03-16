@@ -152,11 +152,12 @@ if ! command -v bw &> /dev/null; then
     exec_cmd "$@"
 fi
 
+# 既存の BW_SESSION を優先利用
+if [[ -n "${BW_SESSION-}" ]]; then
+    echo "✅ Using existing Bitwarden session" >&2
 # API Key でログイン（永続的な認証）
-if [[ -n "${BW_CLIENTID-}" && -n "${BW_CLIENTSECRET-}" ]]; then
+elif [[ -n "${BW_CLIENTID-}" && -n "${BW_CLIENTSECRET-}" ]]; then
     echo "🔑 Logging in to Bitwarden with API Key..." >&2
-    # 既存のログインがある場合はログアウト
-    bw logout &>/dev/null || true
     # API Key でログイン
     if bw login --apikey &>/dev/null; then
         echo "✅ Logged in to Bitwarden with API Key" >&2
@@ -171,12 +172,6 @@ if [[ -n "${BW_CLIENTID-}" && -n "${BW_CLIENTSECRET-}" ]]; then
                 apply_env_lines "$FALLBACK_ENV"
                 exec_cmd "$@"
             fi
-        else
-            echo "⚠️  BW_PASSWORD not set. Using fallback environment variables." >&2
-            echo "   (fallback env applied)" >&2
-            echo "   Tip: Set BW_PASSWORD to unlock vault" >&2
-            apply_env_lines "$FALLBACK_ENV"
-            exec_cmd "$@"
         fi
     else
         echo "⚠️  Failed to login with API Key. Using fallback environment variables." >&2
@@ -234,14 +229,16 @@ fetch_item_notes() {
         items_json=$(BW_SESSION="$BW_SESSION" bw list items --search "$ITEM_NAME" 2>/dev/null) || return 1
     fi
     
-    # jq で完全一致するアイテムの notes を取得
-    notes=$(echo "$items_json" | jq -r ".[] | select(.name == \"$ITEM_NAME\") | .notes // empty" | head -1)
+    # jq で完全一致するアイテムの notes を取得（重複チェック）
+    local matches
+    matches=$(echo "$items_json" | jq --arg item_name "$ITEM_NAME" '[.[] | select(.name == $item_name) | .notes // empty]')
     
-    # notes が空の場合はエラー
-    if [[ -z "$notes" ]]; then
+    # 完全一致が1件だけであることを確認（重複時は失敗）
+    if [[ "$(echo "$matches" | jq 'length')" -ne 1 ]]; then
         return 1
     fi
     
+    notes=$(echo "$matches" | jq -r '.[0]')
     echo "$notes"
 }
 
