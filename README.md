@@ -44,8 +44,8 @@ npm run dev:mock
 #    Settings > Security > Keys > Client ID と Client Secret をコピー
 
 # 2. 環境変数を設定
-export BW_CLIENTID="your-client-id"
-export BW_CLIENTSECRET="your-client-secret"
+export BW_CLIENT_ID="your-client-id"
+export BW_CLIENT_SECRET="your-client-secret"
 export BW_PASSWORD="your-master-password"
 
 # 3. docker-compose で起動
