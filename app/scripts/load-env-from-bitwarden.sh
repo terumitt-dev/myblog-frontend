@@ -172,6 +172,11 @@ elif [[ -n "${BW_CLIENTID-}" && -n "${BW_CLIENTSECRET-}" ]]; then
                 apply_env_lines "$FALLBACK_ENV"
                 exec_cmd "$@"
             fi
+        else
+            echo "⚠️  BW_PASSWORD not set. API Key requires password to unlock vault. Using fallback environment variables." >&2
+            echo "   (fallback env applied)" >&2
+            apply_env_lines "$FALLBACK_ENV"
+            exec_cmd "$@"
         fi
     else
         echo "⚠️  Failed to login with API Key. Using fallback environment variables." >&2
@@ -189,7 +194,8 @@ elif ! bw login --check &> /dev/null; then
 fi
 
 # セッションキーが設定されているかチェック（API Key でログインした場合はスキップ）
-if [ -z "${BW_SESSION-}" ]; then
+# API Key でログインした場合は BW_SESSION がなくても動作する
+if [ -z "${BW_SESSION-}" ] && [ -z "${BW_CLIENTID-}" ]; then
     if [ -t 0 ]; then
         echo "🔐 BW_SESSION not set. Trying to unlock Bitwarden..." >&2
         if BW_SESSION="$(bw unlock --raw </dev/tty)" && [[ -n "$BW_SESSION" ]]; then
@@ -222,11 +228,20 @@ fetch_item_notes() {
     fi
     
     # Bitwarden からアイテム一覧を取得
+    # BW_SESSION が設定されている場合は使用、なければ API Key 認証を使用
     if [[ -n "$local_timeout_bin" ]]; then
-        items_json=$(BW_SESSION="$BW_SESSION" "$local_timeout_bin" 10 bw list items --search "$ITEM_NAME" 2>/dev/null) || return 1
+        if [[ -n "${BW_SESSION-}" ]]; then
+            items_json=$(BW_SESSION="$BW_SESSION" "$local_timeout_bin" 10 bw list items --search "$ITEM_NAME" 2>/dev/null) || return 1
+        else
+            items_json=$("$local_timeout_bin" 10 bw list items --search "$ITEM_NAME" 2>/dev/null) || return 1
+        fi
     else
         echo "⚠️  timeout command not found. Fetching from Bitwarden without timeout." >&2
-        items_json=$(BW_SESSION="$BW_SESSION" bw list items --search "$ITEM_NAME" 2>/dev/null) || return 1
+        if [[ -n "${BW_SESSION-}" ]]; then
+            items_json=$(BW_SESSION="$BW_SESSION" bw list items --search "$ITEM_NAME" 2>/dev/null) || return 1
+        else
+            items_json=$(bw list items --search "$ITEM_NAME" 2>/dev/null) || return 1
+        fi
     fi
     
     # jq で完全一致するアイテムの notes を取得（重複チェック）
