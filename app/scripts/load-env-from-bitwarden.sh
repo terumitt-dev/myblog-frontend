@@ -175,10 +175,10 @@ fi
 
 # API Key でログイン（永続的な認証）
 if [[ -z "${BW_SESSION-}" && -n "${BW_CLIENTID-}" && -n "${BW_CLIENTSECRET-}" ]]; then
-    echo "🔑 Logging in to Bitwarden with API Key..." >&2
-    # API Key でログイン
-    if bw login --apikey &>/dev/null; then
-        echo "✅ Logged in to Bitwarden with API Key" >&2
+    echo "🔑 Ensuring Bitwarden API Key login..." >&2
+    # 既存ログインを再利用するか、新規ログイン
+    if bw login --check &>/dev/null || bw login --apikey &>/dev/null; then
+        echo "✅ Bitwarden login is available" >&2
         # マスターパスワードが設定されている場合、vault をアンロック
         if [[ -n "${BW_PASSWORD-}" ]]; then
             if BW_SESSION="$(bw unlock --passwordenv BW_PASSWORD --raw 2>/dev/null)" && [[ -n "$BW_SESSION" ]]; then
@@ -261,17 +261,17 @@ fetch_item_notes() {
         fi
     fi
     
-    # jq で完全一致するアイテムの notes を取得（重複チェック）
+    # jq で完全一致するアイテムを取得（重複チェック）
     local matches
-    matches=$(echo "$items_json" | jq --arg item_name "$ITEM_NAME" '[.[] | select(.name == $item_name) | .notes // empty]')
+    matches=$(printf '%s' "$items_json" | jq --arg item_name "$ITEM_NAME" '[.[] | select(.name == $item_name)]')
     
     # 完全一致が1件だけであることを確認（重複時は失敗）
-    if [[ "$(echo "$matches" | jq 'length')" -ne 1 ]]; then
+    if [[ "$(printf '%s' "$matches" | jq 'length')" -ne 1 ]]; then
         return 1
     fi
     
-    notes=$(echo "$matches" | jq -r '.[0]')
-    echo "$notes"
+    notes=$(printf '%s' "$matches" | jq -r '.[0].notes // ""')
+    printf '%s' "$notes"
 }
 
 # Bitwarden から環境変数を取得
