@@ -13,4 +13,11 @@ services:
       - BW_CLIENT_ID=${BW_CLIENT_ID:-}
       - BW_CLIENT_SECRET=${BW_CLIENT_SECRET:-}
       - BW_PASSWORD=${BW_PASSWORD:-}
-    command: ["sh", "-c", "npm run dev:${FRONTEND_ENV:-api} -- --host"]
+    command:
+      - sh
+      - -c
+      - |
+        case "${FRONTEND_ENV:-api}" in
+          api|mock) exec npm run "dev:${FRONTEND_ENV:-api}" -- --host ;;
+          *) echo "Invalid \`FRONTEND_ENV\`: ${FRONTEND_ENV}" >&2; exit 1 ;;
+        esac

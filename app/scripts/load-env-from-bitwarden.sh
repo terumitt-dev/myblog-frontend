@@ -149,6 +149,10 @@ exec_cmd() {
 
 # Bitwarden CLI / jq がインストールされているかチェック
 if ! command -v bw &> /dev/null || ! command -v jq &> /dev/null; then
+    if [[ -n "${BW_SESSION-}" || -n "${BW_CLIENTID-}" || -n "${BW_CLIENTSECRET-}" || -n "${BW_CLIENT_ID-}" || -n "${BW_CLIENT_SECRET-}" ]]; then
+        echo "❌ Bitwarden auth is configured, but bw or jq is unavailable." >&2
+        exit 1
+    fi
     echo "⚠️  Bitwarden CLI or jq not found. Using fallback environment variables." >&2
     echo "   (fallback env applied)" >&2
     apply_env_lines "$FALLBACK_ENV"
@@ -283,6 +287,10 @@ if ! ENV_VARS=$(fetch_item_notes); then
 fi
 
 if ! grep -qE '^[[:space:]]*(export[[:space:]]+)?VITE_[A-Za-z0-9_]+=' <<< "$ENV_VARS"; then
+    if [[ -n "${BW_SESSION-}" || -n "${BW_CLIENTID-}" || -n "${BW_CLIENTSECRET-}" || -n "${BW_CLIENT_ID-}" || -n "${BW_CLIENT_SECRET-}" ]]; then
+        echo "❌ Bitwarden item \`$ITEM_NAME\` has no valid \`VITE_\` entries." >&2
+        exit 1
+    fi
     echo "⚠️  Bitwarden item has no valid VITE_ entries. Using fallback environment variables." >&2
     echo "   (fallback env applied)" >&2
     apply_env_lines "$FALLBACK_ENV"
