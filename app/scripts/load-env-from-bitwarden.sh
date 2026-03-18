@@ -33,6 +33,12 @@ fi
 # デフォルト API ベース URL（外部から渡された値を優先）
 DEFAULT_API_BASE_URL="${VITE_API_BASE_URL:-http://localhost:3000/api}"
 
+# 改行注入を防ぐ
+if [[ "$DEFAULT_API_BASE_URL" =~ [$'\n\r'] ]]; then
+    echo "Error: Invalid \`VITE_API_BASE_URL\` (newline is not allowed)" >&2
+    exit 1
+fi
+
 # 環境タイプに応じて環境変数を決定
 case "$ENV_TYPE" in
     api)
