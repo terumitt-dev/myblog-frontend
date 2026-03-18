@@ -30,8 +30,8 @@ if ! [[ "$ENV_TYPE" =~ ^[a-z]+$ ]]; then
     usage
 fi
 
-# デフォルト API ベース URL（外部から渡された値を優先）
-DEFAULT_API_BASE_URL="${VITE_API_BASE_URL:-http://localhost:3000/api}"
+# デフォルト API ベース URL（明示的な上書き変数のみ許可）
+DEFAULT_API_BASE_URL="${API_BASE_URL_OVERRIDE:-http://localhost:3000/api}"
 
 # 改行注入を防ぐ
 if [[ "$DEFAULT_API_BASE_URL" =~ [$'\n\r'] ]]; then
@@ -254,15 +254,19 @@ fetch_item_notes() {
     # BW_SESSION が設定されている場合は使用、なければ API Key 認証を使用
     if [[ -n "$local_timeout_bin" ]]; then
         if [[ -n "${BW_SESSION-}" ]]; then
+            BW_SESSION="$BW_SESSION" "$local_timeout_bin" 10 bw sync >/dev/null 2>&1 || return 1
             items_json=$(BW_SESSION="$BW_SESSION" "$local_timeout_bin" 10 bw list items --search "$ITEM_NAME" 2>/dev/null) || return 1
         else
+            "$local_timeout_bin" 10 bw sync >/dev/null 2>&1 || return 1
             items_json=$("$local_timeout_bin" 10 bw list items --search "$ITEM_NAME" 2>/dev/null) || return 1
         fi
     else
         echo "⚠️  timeout command not found. Fetching from Bitwarden without timeout." >&2
         if [[ -n "${BW_SESSION-}" ]]; then
+            BW_SESSION="$BW_SESSION" bw sync >/dev/null 2>&1 || return 1
             items_json=$(BW_SESSION="$BW_SESSION" bw list items --search "$ITEM_NAME" 2>/dev/null) || return 1
         else
+            bw sync >/dev/null 2>&1 || return 1
             items_json=$(bw list items --search "$ITEM_NAME" 2>/dev/null) || return 1
         fi
     fi
