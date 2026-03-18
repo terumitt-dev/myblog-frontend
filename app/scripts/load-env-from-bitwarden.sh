@@ -181,10 +181,10 @@ fi
 
 # API Key でログイン（永続的な認証）
 if [[ -z "${BW_SESSION-}" && -n "${BW_CLIENTID-}" && -n "${BW_CLIENTSECRET-}" ]]; then
-    echo "🔑 Ensuring Bitwarden API Key login..." >&2
-    # 既存ログインを再利用するか、新規ログイン
-    if bw login --check &>/dev/null || bw login --apikey &>/dev/null; then
-        echo "✅ Bitwarden login is available" >&2
+    echo "🔑 Logging in to Bitwarden with API Key..." >&2
+    bw logout >/dev/null 2>&1 || true
+    if bw login --apikey &>/dev/null; then
+        echo "✅ Bitwarden API Key login succeeded" >&2
         # マスターパスワードが設定されている場合、vault をアンロック
         if [[ -n "${BW_PASSWORD-}" ]]; then
             if BW_SESSION="$(bw unlock --passwordenv BW_PASSWORD --raw 2>/dev/null)" && [[ -n "$BW_SESSION" ]]; then
