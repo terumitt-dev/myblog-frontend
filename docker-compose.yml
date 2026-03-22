@@ -10,4 +10,16 @@ services:
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
-    command: ["npm", "run", "dev", "--", "--host"]
+      - FRONTEND_ENV=${FRONTEND_ENV:-api}
+      - BW_SESSION=${BW_SESSION:-}
+      - BW_CLIENT_ID=${BW_CLIENT_ID:-}
+      - BW_CLIENT_SECRET=${BW_CLIENT_SECRET:-}
+      - BW_PASSWORD=${BW_PASSWORD:-}
+    command:
+      - sh
+      - -c
+      - |
+        case "$${FRONTEND_ENV}" in
+          api|mock) exec npm run "dev:$${FRONTEND_ENV}" -- --host ;;
+          *) echo "Invalid \`FRONTEND_ENV\`: $${FRONTEND_ENV}" >&2; exit 1 ;;
+        esac

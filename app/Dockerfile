@@ -4,6 +4,15 @@ FROM node:20
 # 作業ディレクトリ作成
 WORKDIR /app
 
+# jq をインストール（Bitwarden CLI は npm でインストール）
+RUN apt-get update && \
+    apt-get install -y jq && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Bitwarden CLI を npm でグローバルインストール
+RUN npm install -g @bitwarden/cli
+
 # package.json と package-lock.json を先にコピー
 COPY package*.json ./
 

@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "bash ./scripts/load-env-from-bitwarden.sh api vite",
+    "dev:mock": "bash ./scripts/load-env-from-bitwarden.sh mock vite",
     "build": "tsc -b && vite build",
     "build:analyze": "tsc -b && vite build --mode analyze",
     "lint": "eslint .",
