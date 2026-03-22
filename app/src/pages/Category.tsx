@@ -136,7 +136,7 @@ const Category = () => {
     setError(null);
 
     try {
-      if (!["hobby", "tech", "other", "uncategorized"].includes(category)) {
+      if (!categoryConfig) {
         throw new Error("無効なカテゴリです");
       }
 
