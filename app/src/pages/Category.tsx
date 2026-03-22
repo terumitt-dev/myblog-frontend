@@ -8,7 +8,7 @@ import { cn } from "@/components/utils/cn";
 import ThemeToggle from "@/components/molecules/ThemeToggle";
 import ArticleSkeleton from "@/components/molecules/ArticleSkeleton";
 import { useStaticEffects } from "@/hooks/useStaticEffects";
-import type { BlogWithCategoryName, BlogCategory } from "@/types";
+import type { BlogWithCategoryName } from "@/types";
 import "./Category.css";
 import { getReadMoreButtonStyle } from "@/components/utils/colors";
 import { API_BASE } from "@/api/base";
@@ -51,20 +51,6 @@ const Category = () => {
 
   // カタツムリの移動状態管理
   const [movingSnails, setMovingSnails] = useState<Set<number>>(new Set());
-
-  // カテゴリ名から数値への変換
-  const getCategoryNumber = (categoryName: string): BlogCategory | null => {
-    switch (categoryName) {
-      case "hobby":
-        return 0; // BlogCategory.HOBBY
-      case "tech":
-        return 1; // BlogCategory.TECH
-      case "other":
-        return 2; // BlogCategory.OTHER
-      default:
-        return null;
-    }
-  };
 
   // カテゴリ設定（useMemoで最適化）
   const categoryConfig = React.useMemo(() => {
@@ -150,13 +136,12 @@ const Category = () => {
     setError(null);
 
     try {
-      const categoryNumber = getCategoryNumber(category);
-      if (categoryNumber === null) {
+      if (!["hobby", "tech", "other", "uncategorized"].includes(category)) {
         throw new Error("無効なカテゴリです");
       }
 
       // カテゴリフィルター付きでAPIを呼び出し
-      const response = await fetch(`${API_BASE}/blogs?category=${categoryNumber}`);
+      const response = await fetch(`${API_BASE}/blogs?category=${encodeURIComponent(category)}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
