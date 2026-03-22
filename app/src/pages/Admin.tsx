@@ -369,6 +369,9 @@ const Admin = () => {
                 required
                 disabled={isSaving}
               >
+                {category === "uncategorized" && (
+                  <option value="uncategorized" disabled>未分類</option>
+                )}
                 <option value="hobby">しゅみ</option>
                 <option value="tech">テック</option>
                 <option value="other">その他</option>
