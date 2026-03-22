@@ -26,15 +26,29 @@ type BlogPost = {
   updated_at: string;
 };
 
+// カテゴリ値をCategoryKeyに正規化
+const toCategoryKey = (value: unknown): CategoryKey => {
+  if (
+    value === "hobby" ||
+    value === "tech" ||
+    value === "other" ||
+    value === "uncategorized"
+  ) {
+    return value;
+  }
+  return "uncategorized";
+};
+
 // APIレスポンスをBlogPost型に変換
 const toBlogPost = (data: unknown): BlogPost => {
   const d = data as Partial<BlogPost>;
+  const category = toCategoryKey(d.category);
   return {
     id: d.id as number,
     title: d.title as string,
     content: d.content as string,
-    category: d.category as string,
-    category_name: (d.category_name ?? d.category) as string,
+    category,
+    category_name: (d.category_name ?? category) as string,
     created_at: d.created_at as string,
     updated_at: d.updated_at as string,
   };
