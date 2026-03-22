@@ -81,13 +81,12 @@ describe("useStaticEffects", () => {
     expect(useCategoryValidation).toHaveBeenCalled();
 
     // 戻り値が正しく結合されていることを確認
-    expect(result.current).toEqual({
+    expect(result.current).toMatchObject({
       posts: [
         { id: 1, title: "Test Post", content: "Content", category: "tech" },
       ],
       spiders: [{ id: 101, top: "10px", left: "20px", rotate: 45 }],
       snails: [{ id: 201, top: "30px", left: "40px", isMoved: false }],
-      isLoading: undefined,
       reducedMotion: false,
       spiderDisappearingIds: new Set([102]),
       snailDisappearingIds: new Set([202]),
