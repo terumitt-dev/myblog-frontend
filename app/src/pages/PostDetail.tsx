@@ -201,7 +201,7 @@ const PostDetail = () => {
             <span
               className={cn(
                 "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium",
-                getCategoryColorClass(blog.category_name),
+                getCategoryColorClass(blog.category),
               )}
             >
               {getCategoryDisplayName(blog.category_name)}
