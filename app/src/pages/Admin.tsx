@@ -26,6 +26,20 @@ type BlogPost = {
   updated_at: string;
 };
 
+// APIレスポンスをBlogPost型に変換
+const toBlogPost = (data: unknown): BlogPost => {
+  const d = data as Partial<BlogPost>;
+  return {
+    id: d.id as number,
+    title: d.title as string,
+    content: d.content as string,
+    category: d.category as string,
+    category_name: (d.category_name ?? d.category) as string,
+    created_at: d.created_at as string,
+    updated_at: d.updated_at as string,
+  };
+};
+
 const Admin = () => {
   const { blogsApi } = useAuthenticatedApi();
 
@@ -163,7 +177,7 @@ const Admin = () => {
           return;
         }
 
-        const updatedBlog = response.data as any;
+        const updatedBlog = toBlogPost(response.data);
 
         // フロントエンドの状態を更新
         setPosts((prevPosts) =>
@@ -200,17 +214,7 @@ const Admin = () => {
         }
 
         // APIレスポンスの正しいBlogオブジェクトを使用
-        const createdBlog = response.data as any;
-
-        const newPost: BlogPost = {
-          id: createdBlog.id,
-          title: createdBlog.title,
-          content: createdBlog.content,
-          category: createdBlog.category,
-          category_name: createdBlog.category_name,
-          created_at: createdBlog.created_at,
-          updated_at: createdBlog.updated_at,
-        };
+        const newPost = toBlogPost(response.data);
 
         setPosts((prevPosts) => [newPost, ...prevPosts]);
       }
