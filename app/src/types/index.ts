@@ -36,12 +36,15 @@ export const CATEGORY_NAMES: Record<BlogCategory, string> = {
   [BlogCategory.OTHER]: "other",
 };
 
+// カテゴリのリテラル型
+export type CategoryKey = "hobby" | "tech" | "other" | "uncategorized";
+
 // ブログ記事
 export interface Blog {
   id: number;
   title: string;
   content: string;
-  category: string;
+  category: CategoryKey;
   created_at: string;
   updated_at: string;
 }

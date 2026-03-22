@@ -13,14 +13,14 @@ import {
 import { cn } from "@/components/utils/cn";
 import { CATEGORY_COLORS } from "@/components/utils/colors";
 import { useAuthenticatedApi } from "@/api/client";
-import type { BlogWithCategoryName } from "@/types";
+import type { BlogWithCategoryName, CategoryKey } from "@/types";
 
 // ========== localStorage削除：型定義の更新 ==========
 type BlogPost = {
   id: number;
   title: string;
   content: string;
-  category: string;
+  category: CategoryKey;
   category_name: string;
   created_at: string;
   updated_at: string;
