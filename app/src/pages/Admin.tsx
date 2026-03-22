@@ -80,15 +80,7 @@ const Admin = () => {
 
       // BlogWithCategoryNameをBlogPostに変換し、安全な値を追加
       const blogPosts: BlogPost[] = (data.blogs || []).map(
-        (blog: BlogWithCategoryName) => ({
-          id: blog.id,
-          title: blog.title,
-          category: blog.category,
-          category_name: blog.category_name ?? blog.category,
-          content: blog.content,
-          created_at: blog.created_at,
-          updated_at: blog.updated_at,
-        }),
+        (blog: BlogWithCategoryName) => toBlogPost(blog),
       );
 
       setPosts(blogPosts);
