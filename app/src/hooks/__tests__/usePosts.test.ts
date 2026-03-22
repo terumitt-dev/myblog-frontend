@@ -20,6 +20,7 @@ describe("usePosts", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("APIから投稿データを取得する", async () => {
