@@ -428,7 +428,7 @@ const Category = () => {
                     <span
                       className={cn(
                         "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                        CATEGORY_COLORS[post.category_name as keyof typeof CATEGORY_COLORS]?.bg || CATEGORY_COLORS.other.bg,
+                        CATEGORY_COLORS[post.category as keyof typeof CATEGORY_COLORS]?.bg || CATEGORY_COLORS.other.bg,
                       )}
                     >
                       {categoryConfig.name}

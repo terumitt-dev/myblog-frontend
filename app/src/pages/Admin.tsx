@@ -272,7 +272,7 @@ const Admin = () => {
   const startEditing = (post: BlogPost) => {
     setTitle(post.title);
     setContent(post.content);
-    setCategory(post.category_name);
+    setCategory(post.category);
     setEditingPostId(post.id);
     setError("");
   };

@@ -41,7 +41,7 @@ export interface Blog {
   id: number;
   title: string;
   content: string;
-  category: BlogCategory;
+  category: string;
   created_at: string;
   updated_at: string;
 }
@@ -57,7 +57,6 @@ export interface Comment {
 }
 
 // API レスポンス用の Blog（カテゴリ名を含む）
-export interface BlogWithCategoryName extends Omit<Blog, "category"> {
-  category: BlogCategory;
+export interface BlogWithCategoryName extends Blog {
   category_name: string;
 }
