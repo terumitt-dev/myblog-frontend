@@ -6,10 +6,9 @@ import type { Comment } from "@/types";
 
 type Props = {
   comments: Comment[];
-  isDevMode?: boolean;
 };
 
-const CommentList = ({ comments, isDevMode = false }: Props) => {
+const CommentList = ({ comments }: Props) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const toggleComments = () => {
@@ -22,11 +21,6 @@ const CommentList = ({ comments, isDevMode = false }: Props) => {
       <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-600">
         <h2 className="text-lg font-bold text-gray-900 dark:text-white">
           コメント ({comments.length})
-          {isDevMode && (
-            <span className="block text-xs font-normal text-gray-500 dark:text-gray-400 mt-1">
-              ※開発環境：リロードで初期化
-            </span>
-          )}
         </h2>
 
         {comments.length > 0 && (

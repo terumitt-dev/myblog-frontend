@@ -1,5 +1,6 @@
 // app/src/hooks/usePosts.ts
 import { useState, useEffect } from "react";
+import { API_BASE } from "@/api/base";
 
 // MSWレスポンス用の型定義
 interface BlogFromAPI {
@@ -58,7 +59,7 @@ export const usePosts = (category?: string) => {
         params.set("limit", "20"); // 最大20件取得
 
         const queryString = params.toString();
-        const url = `/api/blogs${queryString ? `?${queryString}` : ""}`;
+        const url = `${API_BASE}/blogs${queryString ? `?${queryString}` : ""}`;
 
         const response = await fetch(url);
 

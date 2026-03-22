@@ -8,6 +8,7 @@
     --color-category-hobby-bg: #e1c6f9;
     --color-category-tech-bg: #afebff;
     --color-category-other-bg: #ccf5b1;
+    --color-category-uncategorized-bg: #fed7aa;
 
     /* UIカラー - Primary (Blue) */
     --color-ui-primary-500: #3b82f6; /* blue-500 */
@@ -50,6 +51,7 @@
     --color-category-hobby-bg: #8b5cf6; /* purple-500 - hobby(紫)の適度な濃さ */
     --color-category-tech-bg: #0ea5e9; /* sky-500 - tech(青)の適度な濃さ */
     --color-category-other-bg: #22c55e; /* green-500 - other(緑)の適度な濃さ */
+    --color-category-uncategorized-bg: #f97316; /* orange-500 - 未分類(オレンジ) */
 
     /* UIカラー - Primary (Blue) */
     --color-ui-primary-600: #1d4ed8; /* dark:bg-blue-700 */

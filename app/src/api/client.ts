@@ -664,7 +664,7 @@ export const useAuthenticatedApi = () => {
       create: (blogId: number, data: CommentCreateData) =>
         apiCall(`/blogs/${blogId}/comments`, {
           method: "POST",
-          body: JSON.stringify(data),
+          body: JSON.stringify({ comment: data }),
         }),
     },
   };
