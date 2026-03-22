@@ -2,6 +2,7 @@
 import { useContext } from "react";
 import { AuthContext } from "@/context/AuthContext";
 import { API_BASE } from "@/api/base";
+import type { CategoryKey } from "@/types";
 
 // 成功時の型とエラー時の型を明確に分離
 // ok プロパティで成功/失敗を明確に判別可能
@@ -12,13 +13,13 @@ export type ApiResponse<T> =
 interface BlogCreateData {
   title: string;
   content: string;
-  category: string;
+  category: CategoryKey;
 }
 
 interface BlogUpdateData {
   title: string;
   content: string;
-  category: string;
+  category: CategoryKey;
 }
 
 interface CommentCreateData {
@@ -664,7 +665,7 @@ export const useAuthenticatedApi = () => {
       create: (blogId: number, data: CommentCreateData) =>
         apiCall(`/blogs/${blogId}/comments`, {
           method: "POST",
-          body: JSON.stringify(data),
+          body: JSON.stringify({ comment: data }),
         }),
     },
   };

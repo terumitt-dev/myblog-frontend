@@ -7,7 +7,8 @@ import ArticleSkeleton from "@/components/molecules/ArticleSkeleton";
 import Container from "@/components/layouts/Container";
 import { cn } from "@/components/utils/cn";
 import type { BlogWithCategoryName } from "@/types";
-import { getReadMoreButtonStyle } from "@/components/utils/colors";
+import { getReadMoreButtonStyle, CATEGORY_COLORS } from "@/components/utils/colors";
+import { API_BASE } from "@/api/base";
 
 const Top = () => {
   const [posts, setPosts] = useState<BlogWithCategoryName[]>([]);
@@ -21,7 +22,7 @@ const Top = () => {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch("/api/blogs");
+        const response = await fetch(`${API_BASE}/blogs`);
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -61,6 +62,8 @@ const Top = () => {
         return "しゅみ";
       case "other":
         return "その他";
+      case "uncategorized":
+        return "未分類";
       default:
         return categoryName;
     }
@@ -68,16 +71,8 @@ const Top = () => {
 
   // カテゴリの色クラス
   const getCategoryColorClass = (categoryName: string) => {
-    switch (categoryName) {
-      case "tech":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-      case "hobby":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "other":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-    }
+    const colors = CATEGORY_COLORS[categoryName as keyof typeof CATEGORY_COLORS];
+    return colors ? colors.bg : CATEGORY_COLORS.other.bg;
   };
 
   return (
@@ -201,7 +196,7 @@ const Top = () => {
                         <span
                           className={cn(
                             "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                            getCategoryColorClass(post.category_name),
+                            getCategoryColorClass(post.category),
                           )}
                         >
                           {getCategoryDisplayName(post.category_name)}

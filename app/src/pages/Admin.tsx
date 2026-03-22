@@ -11,21 +11,47 @@ import {
   sanitizeInput,
 } from "@/components/utils/sanitizer";
 import { cn } from "@/components/utils/cn";
+import { CATEGORY_COLORS } from "@/components/utils/colors";
 import { useAuthenticatedApi } from "@/api/client";
-import type { BlogWithCategoryName } from "@/types";
-import {
-  categoryToString,
-  normalizeBlogResponse,
-} from "@/components/utils/categoryConverter";
+import type { BlogWithCategoryName, CategoryKey } from "@/types";
 
 // ========== localStorage削除：型定義の更新 ==========
 type BlogPost = {
   id: number;
   title: string;
   content: string;
-  category: number;
+  category: CategoryKey;
+  category_name: string;
   created_at: string;
   updated_at: string;
+};
+
+// カテゴリ値をCategoryKeyに正規化
+const toCategoryKey = (value: unknown): CategoryKey => {
+  if (
+    value === "hobby" ||
+    value === "tech" ||
+    value === "other" ||
+    value === "uncategorized"
+  ) {
+    return value;
+  }
+  return "uncategorized";
+};
+
+// APIレスポンスをBlogPost型に変換
+const toBlogPost = (data: unknown): BlogPost => {
+  const d = data as Partial<BlogPost>;
+  const category = toCategoryKey(d.category);
+  return {
+    id: d.id as number,
+    title: d.title as string,
+    content: d.content as string,
+    category,
+    category_name: (d.category_name ?? category) as string,
+    created_at: d.created_at as string,
+    updated_at: d.updated_at as string,
+  };
 };
 
 const Admin = () => {
@@ -35,7 +61,7 @@ const Admin = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [category, setCategory] = useState("0"); // hobby=0, tech=1, other=2
+  const [category, setCategory] = useState<CategoryKey>("hobby");
   const [error, setError] = useState("");
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -54,14 +80,7 @@ const Admin = () => {
 
       // BlogWithCategoryNameをBlogPostに変換し、安全な値を追加
       const blogPosts: BlogPost[] = (data.blogs || []).map(
-        (blog: BlogWithCategoryName) => ({
-          id: blog.id,
-          title: blog.title,
-          category: blog.category,
-          content: blog.content,
-          created_at: blog.created_at,
-          updated_at: blog.updated_at,
-        }),
+        (blog: BlogWithCategoryName) => toBlogPost(blog),
       );
 
       setPosts(blogPosts);
@@ -87,21 +106,10 @@ const Admin = () => {
         return "テック";
       case "other":
         return "その他";
+      case "uncategorized":
+        return "未分類";
       default:
         return categoryName;
-    }
-  };
-
-  const getCategoryName = (categoryValue: number) => {
-    switch (categoryValue) {
-      case 0:
-        return "hobby";
-      case 1:
-        return "tech";
-      case 2:
-        return "other";
-      default:
-        return "other";
     }
   };
 
@@ -117,9 +125,7 @@ const Admin = () => {
       TEXT_LIMITS.CONTENT_MAX_LENGTH,
       "内容",
     );
-    const categoryValidation = validateCategory(
-      getCategoryName(parseInt(category)),
-    );
+    const categoryValidation = validateCategory(category);
 
     if (!titleValidation.isValid) {
       setError(titleValidation.error || "タイトルが無効です");
@@ -139,7 +145,7 @@ const Admin = () => {
     return {
       sanitizedTitle: titleValidation.sanitized,
       sanitizedContent: contentValidation.sanitized,
-      sanitizedCategory: parseInt(category),
+      sanitizedCategory: category,
     };
   };
 
@@ -161,7 +167,7 @@ const Admin = () => {
         const updateData = {
           title: sanitizedTitle,
           content: sanitizedContent,
-          category: categoryToString(sanitizedCategory), // 型安全な文字列化
+          category: sanitizedCategory,
         };
 
         // 認証付きAPIクライアントで更新
@@ -177,7 +183,7 @@ const Admin = () => {
           return;
         }
 
-        const updatedBlog = normalizeBlogResponse(response.data);
+        const updatedBlog = toBlogPost(response.data);
 
         // フロントエンドの状態を更新
         setPosts((prevPosts) =>
@@ -188,6 +194,7 @@ const Admin = () => {
                   title: updatedBlog.title,
                   content: updatedBlog.content,
                   category: updatedBlog.category,
+                  category_name: updatedBlog.category_name,
                   updated_at: updatedBlog.updated_at,
                 }
               : post,
@@ -197,7 +204,7 @@ const Admin = () => {
         // 新規作成処理
         const newPostData = {
           title: sanitizedTitle,
-          category: categoryToString(sanitizedCategory), // 型安全な文字列化
+          category: sanitizedCategory,
           content: sanitizedContent,
         };
 
@@ -213,17 +220,7 @@ const Admin = () => {
         }
 
         // APIレスポンスの正しいBlogオブジェクトを使用
-        const createdBlog = normalizeBlogResponse(response.data);
-
-        const newPost: BlogPost = {
-          // APIが返す正しいIDを使用
-          id: createdBlog.id,
-          title: createdBlog.title,
-          content: createdBlog.content,
-          category: createdBlog.category,
-          created_at: createdBlog.created_at,
-          updated_at: createdBlog.updated_at,
-        };
+        const newPost = toBlogPost(response.data);
 
         setPosts((prevPosts) => [newPost, ...prevPosts]);
       }
@@ -272,7 +269,7 @@ const Admin = () => {
   const resetForm = () => {
     setTitle("");
     setContent("");
-    setCategory("0");
+    setCategory("hobby");
     setEditingPostId(null);
     setError("");
   };
@@ -281,23 +278,15 @@ const Admin = () => {
   const startEditing = (post: BlogPost) => {
     setTitle(post.title);
     setContent(post.content);
-    setCategory(post.category.toString());
+    setCategory(post.category);
     setEditingPostId(post.id);
     setError("");
   };
 
   // カテゴリー色クラス
-  const getCategoryColorClass = (categoryValue: number) => {
-    switch (categoryValue) {
-      case 0: // hobby
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case 1: // tech
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-      case 2: // other
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-    }
+  const getCategoryColorClass = (categoryName: string) => {
+    const colors = CATEGORY_COLORS[categoryName as keyof typeof CATEGORY_COLORS];
+    return colors ? colors.bg : CATEGORY_COLORS.other.bg;
   };
 
   if (isLoading) {
@@ -381,14 +370,17 @@ const Admin = () => {
               <select
                 id="category-select"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => setCategory(e.target.value as CategoryKey)}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 required
                 disabled={isSaving}
               >
-                <option value="0">しゅみ</option>
-                <option value="1">テック</option>
-                <option value="2">その他</option>
+                {category === "uncategorized" && (
+                  <option value="uncategorized" disabled>未分類</option>
+                )}
+                <option value="hobby">しゅみ</option>
+                <option value="tech">テック</option>
+                <option value="other">その他</option>
               </select>
             </div>
 
@@ -487,7 +479,7 @@ const Admin = () => {
                           getCategoryColorClass(post.category),
                         )}
                       >
-                        {getCategoryDisplayName(getCategoryName(post.category))}
+                        {getCategoryDisplayName(post.category_name)}
                       </span>
                       <time className="text-xs text-gray-500 dark:text-gray-400">
                         {new Date(post.created_at).toLocaleDateString("ja-JP")}

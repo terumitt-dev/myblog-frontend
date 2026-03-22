@@ -10,6 +10,8 @@ import PostDetailSkeleton from "@/components/molecules/PostDetailSkeleton";
 import { cn } from "@/components/utils/cn";
 import Container from "@/components/layouts/Container";
 import type { BlogWithCategoryName, Comment } from "@/types";
+import { API_BASE } from "@/api/base";
+import { CATEGORY_COLORS } from "@/components/utils/colors";
 
 const PostDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,7 +44,7 @@ const PostDetail = () => {
         );
 
         // ブログ詳細を取得
-        const blogResponse = await fetch(`/api/blogs/${postId}`);
+        const blogResponse = await fetch(`${API_BASE}/blogs/${postId}`);
         if (!blogResponse.ok) {
           throw new Error(
             `ブログの取得に失敗しました。Status: ${blogResponse.status}`,
@@ -54,7 +56,7 @@ const PostDetail = () => {
         console.log("✅ ブログデータ取得成功:", blogData.title);
 
         // コメントを取得
-        const commentsResponse = await fetch(`/api/blogs/${postId}/comments`);
+        const commentsResponse = await fetch(`${API_BASE}/blogs/${postId}/comments`);
         if (!commentsResponse.ok) {
           console.warn("コメントの取得に失敗しましたが、記事は表示します");
           setComments([]);
@@ -91,14 +93,16 @@ const PostDetail = () => {
     try {
       console.log("💬 コメント投稿開始:", { name, content });
 
-      const response = await fetch(`/api/blogs/${postId}/comments`, {
+      const response = await fetch(`${API_BASE}/blogs/${postId}/comments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          user_name: name.trim(),
-          comment: content.trim(),
+          comment: {
+            user_name: name.trim(),
+            comment: content.trim(),
+          },
         }),
       });
 
@@ -132,6 +136,8 @@ const PostDetail = () => {
         return "テック";
       case "other":
         return "その他";
+      case "uncategorized":
+        return "未分類";
       default:
         return categoryName;
     }
@@ -139,16 +145,8 @@ const PostDetail = () => {
 
   // カテゴリー色クラス
   const getCategoryColorClass = (categoryName: string) => {
-    switch (categoryName) {
-      case "hobby":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-      case "tech":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-      case "other":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
-    }
+    const colors = CATEGORY_COLORS[categoryName as keyof typeof CATEGORY_COLORS];
+    return colors ? colors.bg : CATEGORY_COLORS.other.bg;
   };
 
   if (isLoading) {
@@ -203,7 +201,7 @@ const PostDetail = () => {
             <span
               className={cn(
                 "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium",
-                getCategoryColorClass(blog.category_name),
+                getCategoryColorClass(blog.category),
               )}
             >
               {getCategoryDisplayName(blog.category_name)}
@@ -265,7 +263,7 @@ const PostDetail = () => {
 
           {/* 右カラム - コメント一覧 */}
           <div className="lg:col-span-1">
-            <CommentList comments={comments} isDevMode={import.meta.env.DEV} />
+            <CommentList comments={comments} />
           </div>
         </div>
       </Container>

@@ -22,6 +22,13 @@ export const CATEGORY_COLORS = {
     text: "#ffffff", // ボタンテキスト色（白）
     name: "その他",
   },
+  uncategorized: {
+    bg: "bg-category-uncategorized-bg",
+    hex: "var(--color-category-uncategorized-bg)",
+    accent: "var(--color-category-uncategorized-bg)",
+    text: "#ffffff",
+    name: "未分類",
+  },
 } as const;
 
 // 汎用UI色彩パレット

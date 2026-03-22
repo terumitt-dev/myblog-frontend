@@ -25,6 +25,9 @@ module.exports = {
           other: {
             bg: "var(--color-category-other-bg)",
           },
+          uncategorized: {
+            bg: "var(--color-category-uncategorized-bg)",
+          },
         },
         ui: {
           primary: {
