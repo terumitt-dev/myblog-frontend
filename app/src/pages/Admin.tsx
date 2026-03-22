@@ -47,7 +47,7 @@ const Admin = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [category, setCategory] = useState("hobby");
+  const [category, setCategory] = useState<CategoryKey>("hobby");
   const [error, setError] = useState("");
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -364,7 +364,7 @@ const Admin = () => {
               <select
                 id="category-select"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={(e) => setCategory(e.target.value as CategoryKey)}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 required
                 disabled={isSaving}
