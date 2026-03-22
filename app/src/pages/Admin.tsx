@@ -70,7 +70,7 @@ const Admin = () => {
           id: blog.id,
           title: blog.title,
           category: blog.category,
-          category_name: blog.category_name,
+          category_name: blog.category_name ?? blog.category,
           content: blog.content,
           created_at: blog.created_at,
           updated_at: blog.updated_at,
