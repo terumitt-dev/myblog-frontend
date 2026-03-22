@@ -9,6 +9,14 @@ const wrapper = ({ children }: { children: React.ReactNode }) =>
   React.createElement(AuthProvider, null, children);
 
 describe("useAuth", () => {
+  beforeEach(() => {
+    try {
+      window.localStorage.clear();
+    } catch {
+      // jsdom環境でclearが使えない場合は無視
+    }
+  });
+
   it("AuthProvider内で初期状態は未認証", () => {
     const { result } = renderHook(() => useAuth(), { wrapper });
 
