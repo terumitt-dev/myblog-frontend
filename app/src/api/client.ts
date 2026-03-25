@@ -633,6 +633,15 @@ export const useAuthenticatedApi = () => {
         apiCall(`/admin/blogs/${id}`, {
           method: "DELETE",
         }),
+
+      importMt: (file: File) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return apiCall("/admin/blogs/import_mt", {
+          method: "POST",
+          body: formData,
+        });
+      },
     },
 
     // 認証API
