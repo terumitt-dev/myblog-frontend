@@ -3,18 +3,31 @@ name: Trigger AI Review
 on:
   issue_comment:
     types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
 
 permissions:
   contents: write
   issues: write
   pull-requests: write
+  id-token: write
+  actions: read
 
 jobs:
-  check-team-member:
+  # ──────────────────────────────────────
+  # Qodo: /review /describe /improve
+  # ──────────────────────────────────────
+  check-team-member-qodo:
     if: |
-      github.event.comment.body == '/review' ||
-      github.event.comment.body == '/describe' ||
-      github.event.comment.body == '/improve'
+      github.event_name == 'issue_comment' && (
+        github.event.comment.body == '/review' ||
+        github.event.comment.body == '/describe' ||
+        github.event.comment.body == '/improve'
+      )
     runs-on: ubuntu-latest
     outputs:
       allowed: ${{ steps.check.outputs.allowed }}
@@ -39,8 +52,8 @@ jobs:
           fi
 
   ai-review:
-    needs: check-team-member
-    if: needs.check-team-member.outputs.allowed == 'true'
+    needs: check-team-member-qodo
+    if: needs.check-team-member-qodo.outputs.allowed == 'true'
     uses: terumitt-dev/github_actions_ci-cd/.github/workflows/reusable-ci.yml@main
     with:
       pr_number: ${{ github.event.issue.number }}
@@ -48,3 +61,59 @@ jobs:
       target_repo: ${{ github.repository }}
     secrets:
       OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
+
+  # ──────────────────────────────────────
+  # Claude Code: @claude mentions
+  # ──────────────────────────────────────
+  check-team-member-claude:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    outputs:
+      allowed: ${{ steps.check.outputs.allowed }}
+    steps:
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Check if commenter is in team
+        id: check
+        run: |
+          EVENT_NAME="${{ github.event_name }}"
+          if [ "$EVENT_NAME" = "issues" ]; then
+            COMMENTER=${{ github.event.issue.user.login }}
+          elif [ "$EVENT_NAME" = "pull_request_review" ]; then
+            COMMENTER=${{ github.event.review.user.login }}
+          else
+            COMMENTER=${{ github.event.comment.user.login }}
+          fi
+
+          TEAM_MEMBERS=$(curl -s -H "Authorization: Bearer ${{ secrets.TEAM_PAT }}" \
+            https://api.github.com/orgs/terumitt-dev/teams/ai-reviewers/members)
+
+          LOGINS=$(echo "$TEAM_MEMBERS" | jq -r '.[].login')
+
+          if echo "$LOGINS" | grep -q "^$COMMENTER$"; then
+            echo "allowed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "allowed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  claude-code:
+    needs: check-team-member-claude
+    if: needs.check-team-member-claude.outputs.allowed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
