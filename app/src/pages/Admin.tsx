@@ -54,6 +54,8 @@ const toBlogPost = (data: unknown): BlogPost => {
   };
 };
 
+const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
+
 const Admin = () => {
   const { blogsApi } = useAuthenticatedApi();
 
@@ -289,8 +291,6 @@ const Admin = () => {
   };
 
   // MTインポート
-  const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
-
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     // input をリセットして同じファイルを再選択可能にする
@@ -298,7 +298,7 @@ const Admin = () => {
 
     if (!file) return;
 
-    if (!file.name.endsWith(".txt")) {
+    if (!file.name.toLowerCase().endsWith(".txt")) {
       setImportResult({ type: "error", message: ".txt ファイルのみアップロードできます" });
       return;
     }
@@ -385,6 +385,7 @@ const Admin = () => {
             className={cn(
               "inline-flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-colors cursor-pointer",
               "focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500",
+              isImporting && "pointer-events-none",
               isImporting
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-green-600 text-white hover:bg-green-700",
