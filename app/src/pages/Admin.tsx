@@ -54,6 +54,8 @@ const toBlogPost = (data: unknown): BlogPost => {
   };
 };
 
+const MAX_UPLOAD_SIZE = 5 * 1024 * 1024; // 5MB
+
 const Admin = () => {
   const { blogsApi } = useAuthenticatedApi();
 
@@ -67,6 +69,11 @@ const Admin = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeletingId, setIsDeletingId] = useState<number | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   // ========== localStorage削除：ダミーデータからAPI経由で読み込み ==========
   const loadPosts = useCallback(async () => {
@@ -283,6 +290,54 @@ const Admin = () => {
     setError("");
   };
 
+  // MTインポート
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // input をリセットして同じファイルを再選択可能にする
+    e.target.value = "";
+
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith(".txt")) {
+      setImportResult({ type: "error", message: ".txt ファイルのみアップロードできます" });
+      return;
+    }
+
+    if (file.size > MAX_UPLOAD_SIZE) {
+      setImportResult({ type: "error", message: "ファイルサイズが 5MB を超えています" });
+      return;
+    }
+
+    setIsImporting(true);
+    setImportResult(null);
+
+    try {
+      const response = await blogsApi.importMt(file);
+
+      if (!response.ok) {
+        throw new Error(response.error || "インポートに失敗しました");
+      }
+
+      const data = response.data as { message?: string; imported_count?: number } | null;
+      const count = data?.imported_count ?? 0;
+      setImportResult({
+        type: "success",
+        message: data?.message || `${count}件のエントリをインポートしました`,
+      });
+
+      // 一覧を再取得
+      await loadPosts();
+    } catch (err) {
+      console.error("MTインポートエラー:", err);
+      setImportResult({
+        type: "error",
+        message: err instanceof Error ? err.message : "インポートに失敗しました",
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   // カテゴリー色クラス
   const getCategoryColorClass = (categoryName: string) => {
     const colors = CATEGORY_COLORS[categoryName as keyof typeof CATEGORY_COLORS];
@@ -317,6 +372,54 @@ const Admin = () => {
             <LogoutButton />
           </div>
         </header>
+
+        {/* MTインポート */}
+        <section className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white mb-4">
+            Movable Type インポート
+          </h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Movable Type 形式のエクスポートファイル (.txt) をインポートできます（上限 5MB）
+          </p>
+          <label
+            className={cn(
+              "inline-flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-colors cursor-pointer",
+              "focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500",
+              isImporting && "pointer-events-none",
+              isImporting
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-green-600 text-white hover:bg-green-700",
+            )}
+          >
+            {isImporting ? (
+              <>
+                <LoadingSpinner size="sm" />
+                インポート中...
+              </>
+            ) : (
+              "ファイルを選択してインポート"
+            )}
+            <input
+              type="file"
+              accept=".txt"
+              className="sr-only"
+              onChange={handleImport}
+              disabled={isImporting}
+            />
+          </label>
+          {importResult && (
+            <div
+              className={cn(
+                "mt-4 p-4 rounded-md",
+                importResult.type === "success"
+                  ? "bg-green-50 border border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
+                  : "bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400",
+              )}
+            >
+              <p>{importResult.message}</p>
+            </div>
+          )}
+        </section>
 
         {/* エラーメッセージ */}
         {error && (
