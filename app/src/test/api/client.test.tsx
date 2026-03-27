@@ -190,6 +190,38 @@ describe("認証API (useAuthenticatedApi)", () => {
     });
   });
 
+  describe("blogsApi.uploadImage", () => {
+    it("FormDataで画像アップロードリクエストを送信する", async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ status: "success", data: { url: "https://example.com/image.png", filename: "image.png" } })
+      );
+
+      const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
+      const file = new File(["dummy"], "test.png", { type: "image/png" });
+      await result.current.blogsApi.uploadImage(file);
+
+      const callArgs = mockFetch.mock.calls[0];
+      expect(callArgs[0]).toContain("/admin/images");
+      expect(callArgs[1].method).toBe("POST");
+      expect(callArgs[1].body).toBeInstanceOf(FormData);
+      expect(callArgs[1].body.get("image")).toBe(file);
+    });
+
+    it("Content-Typeヘッダーを設定しない（FormData使用時）", async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ status: "success", data: { url: "https://example.com/image.png", filename: "image.png" } })
+      );
+
+      const { result } = renderHook(() => useAuthenticatedApi(), { wrapper });
+      const file = new File(["dummy"], "test.png", { type: "image/png" });
+      await result.current.blogsApi.uploadImage(file);
+
+      const callArgs = mockFetch.mock.calls[0];
+      // FormData送信時はContent-Typeをブラウザに自動設定させるため、明示的に設定しない
+      expect(callArgs[1].headers.get("Content-Type")).toBeNull();
+    });
+  });
+
   describe("レスポンス処理", () => {
     it("非JSON成功レスポンスをエラーとして返す", async () => {
       mockFetch.mockResolvedValueOnce((() => {
