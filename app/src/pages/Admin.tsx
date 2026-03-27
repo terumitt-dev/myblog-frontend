@@ -14,6 +14,7 @@ import { cn } from "@/components/utils/cn";
 import { CATEGORY_COLORS } from "@/components/utils/colors";
 import { useAuthenticatedApi } from "@/api/client";
 import type { BlogWithCategoryName, CategoryKey } from "@/types";
+import RichTextEditor from "@/components/organisms/RichTextEditor";
 
 // ========== localStorage削除：型定義の更新 ==========
 type BlogPost = {
@@ -127,11 +128,6 @@ const Admin = () => {
       TEXT_LIMITS.TITLE_MAX_LENGTH,
       "タイトル",
     );
-    const contentValidation = validateAndSanitize(
-      content,
-      TEXT_LIMITS.CONTENT_MAX_LENGTH,
-      "内容",
-    );
     const categoryValidation = validateCategory(category);
 
     if (!titleValidation.isValid) {
@@ -139,8 +135,15 @@ const Admin = () => {
       return null;
     }
 
-    if (!contentValidation.isValid) {
-      setError(contentValidation.error || "内容が無効です");
+    // contentはHTMLなのでsanitizeInputを通さず、長さチェックのみ
+    const strippedContent = content.replace(/<[^>]*>/g, "").trim();
+    if (strippedContent.length === 0) {
+      setError("内容を入力してください");
+      return null;
+    }
+
+    if (content.length > TEXT_LIMITS.CONTENT_MAX_LENGTH) {
+      setError(`内容は${TEXT_LIMITS.CONTENT_MAX_LENGTH}文字以内で入力してください`);
       return null;
     }
 
@@ -151,7 +154,7 @@ const Admin = () => {
 
     return {
       sanitizedTitle: titleValidation.sanitized,
-      sanitizedContent: contentValidation.sanitized,
+      sanitizedContent: content,
       sanitizedCategory: category,
     };
   };
@@ -338,6 +341,21 @@ const Admin = () => {
     }
   };
 
+  // 画像アップロードハンドラー（RichTextEditorから呼ばれる）
+  const handleImageUpload = useCallback(async (file: File): Promise<string | null> => {
+    try {
+      const response = await blogsApi.uploadImage(file);
+      if (!response.ok) {
+        console.error("Image upload failed:", response.error);
+        return null;
+      }
+      return (response.data as { url: string; filename: string })?.url ?? null;
+    } catch (err) {
+      console.error("Image upload error:", err);
+      return null;
+    }
+  }, [blogsApi]);
+
   // カテゴリー色クラス
   const getCategoryColorClass = (categoryName: string) => {
     const colors = CATEGORY_COLORS[categoryName as keyof typeof CATEGORY_COLORS];
@@ -490,25 +508,19 @@ const Admin = () => {
             {/* 内容入力 */}
             <div>
               <label
-                htmlFor="content-textarea"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
                 内容
               </label>
-              <textarea
-                id="content-textarea"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={15}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                placeholder="投稿の内容を入力してください（Markdownが使用できます）"
-                maxLength={TEXT_LIMITS.CONTENT_MAX_LENGTH}
-                required
+              <RichTextEditor
+                content={content}
+                onUpdate={setContent}
+                onImageUpload={handleImageUpload}
                 disabled={isSaving}
+                placeholder="記事の内容を入力してください"
               />
               <p className="mt-1 text-sm text-gray-500">
-                {sanitizeInput(content).length}/{TEXT_LIMITS.CONTENT_MAX_LENGTH}
-                文字
+                {content.replace(/<[^>]*>/g, "").length} 文字（テキスト部分）
               </p>
             </div>
 
@@ -516,11 +528,11 @@ const Admin = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="submit"
-                disabled={isSaving || !title.trim() || !content.trim()}
+                disabled={isSaving || !title.trim() || !content.replace(/<[^>]*>/g, "").trim()}
                 className={cn(
                   "px-6 py-3 rounded-md font-medium transition-colors",
                   "focus:outline-none focus:ring-2 focus:ring-offset-2",
-                  isSaving || !title.trim() || !content.trim()
+                  isSaving || !title.trim() || !content.replace(/<[^>]*>/g, "").trim()
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
                 )}
@@ -596,9 +608,10 @@ const Admin = () => {
 
                     {/* 内容プレビュー */}
                     <div className="text-gray-600 dark:text-gray-300 text-sm line-clamp-3 mb-4">
-                      {post.content.length > 100
-                        ? post.content.substring(0, 100) + "..."
-                        : post.content}
+                      {(() => {
+                        const text = post.content.replace(/<[^>]*>/g, "").trim();
+                        return text.length > 100 ? text.substring(0, 100) + "..." : text;
+                      })()}
                     </div>
 
                     {/* アクションボタン */}

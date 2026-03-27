@@ -12,6 +12,7 @@ import Container from "@/components/layouts/Container";
 import type { BlogWithCategoryName, Comment } from "@/types";
 import { API_BASE } from "@/api/base";
 import { CATEGORY_COLORS } from "@/components/utils/colors";
+import { sanitizeHtml } from "@/components/utils/sanitizer";
 
 const PostDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -232,9 +233,10 @@ const PostDetail = () => {
                 </h1>
               </header>
 
-              <div className="prose prose-lg max-w-none dark:prose-invert">
-                {blog.content}
-              </div>
+              <div
+                className="prose prose-lg max-w-none dark:prose-invert"
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(blog.content) }}
+              />
             </article>
 
             {/* コメントフォーム */}

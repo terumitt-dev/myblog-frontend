@@ -16,6 +16,11 @@
     "test:coverage": "vitest --coverage"
   },
   "dependencies": {
+    "@tiptap/extension-image": "^3.21.0",
+    "@tiptap/extension-link": "^3.21.0",
+    "@tiptap/pm": "^3.21.0",
+    "@tiptap/react": "^3.21.0",
+    "@tiptap/starter-kit": "^3.21.0",
     "dompurify": "^3.3.2",
     "lucide-react": "^0.525.0",
     "react": "^19.1.0",

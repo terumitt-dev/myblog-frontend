@@ -642,6 +642,15 @@ export const useAuthenticatedApi = () => {
           body: formData,
         });
       },
+
+      uploadImage: (file: File) => {
+        const formData = new FormData();
+        formData.append("image", file);
+        return apiCall<{ url: string; filename: string }>("/admin/images", {
+          method: "POST",
+          body: formData,
+        });
+      },
     },
 
     // 認証API
