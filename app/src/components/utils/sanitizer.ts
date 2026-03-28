@@ -4,7 +4,8 @@ import DOMPurify from "dompurify";
 // HTMLタグを除去してプレーンテキストにする
 export const stripHtmlTags = (html: string): string => {
   if (!html) return "";
-  return html.replace(/<[^>]*>/g, "").trim();
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return (doc.body.textContent ?? "").trim();
 };
 
 // 入力サニタイズ（完全にプレーンテキスト化）

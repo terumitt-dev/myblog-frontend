@@ -175,10 +175,13 @@ const RichTextEditor = ({
 
     const ALLOWED_PROTOCOLS = ["http:", "https:", "mailto:"];
     try {
-      const url = new URL(linkUrl.trim(), window.location.origin);
+      const rawUrl = linkUrl.trim();
+      const url = new URL(rawUrl, window.location.origin);
       if (!ALLOWED_PROTOCOLS.includes(url.protocol)) return;
 
-      editor.chain().focus().setLink({ href: url.toString() }).run();
+      // 相対URLは元の入力値のまま保存（環境依存の絶対URLにしない）
+      const href = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(rawUrl) ? url.toString() : rawUrl;
+      editor.chain().focus().setLink({ href }).run();
       setShowLinkInput(false);
       setLinkUrl("");
     } catch {
