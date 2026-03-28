@@ -88,16 +88,16 @@ const RichTextEditor = ({
   // contentが外部から変更された場合にエディタを同期
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
-      editor.commands.setContent(content);
+      editor.commands.setContent(content, false);
     }
   }, [content, editor]);
 
-  // disabled状態の同期
+  // disabled/isUploading状態の同期
   useEffect(() => {
     if (editor) {
-      editor.setEditable(!disabled);
+      editor.setEditable(!disabled && !isUploading);
     }
-  }, [disabled, editor]);
+  }, [disabled, isUploading, editor]);
 
   // handleImageFileの最新参照をrefに保持（editorPropsのクロージャから参照）
   const handleImageFile = useCallback(
