@@ -26,7 +26,10 @@ const RichTextEditor = ({
 }: RichTextEditorProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const linkInputRef = useRef<HTMLInputElement>(null);
   const handleImageFileRef = useRef<(file: File) => void>(() => {});
 
   const editor = useEditor({
@@ -143,13 +146,23 @@ const RichTextEditor = ({
     if (file) handleImageFile(file);
   };
 
-  const addLink = useCallback(() => {
-    if (!editor) return;
-    const url = window.prompt("URLを入力してください");
-    if (url) {
-      editor.chain().focus().setLink({ href: url }).run();
+  const toggleLinkInput = useCallback(() => {
+    if (showLinkInput) {
+      setShowLinkInput(false);
+      setLinkUrl("");
+    } else {
+      setShowLinkInput(true);
+      setLinkUrl("");
+      setTimeout(() => linkInputRef.current?.focus(), 0);
     }
-  }, [editor]);
+  }, [showLinkInput]);
+
+  const confirmLink = useCallback(() => {
+    if (!editor || !linkUrl.trim()) return;
+    editor.chain().focus().setLink({ href: linkUrl.trim() }).run();
+    setShowLinkInput(false);
+    setLinkUrl("");
+  }, [editor, linkUrl]);
 
   if (!editor) return null;
 
@@ -223,8 +236,8 @@ const RichTextEditor = ({
         <ToolbarSeparator />
 
         <ToolbarButton
-          onClick={addLink}
-          isActive={editor.isActive("link")}
+          onClick={toggleLinkInput}
+          isActive={editor.isActive("link") || showLinkInput}
           disabled={disabled}
           title="リンク"
         >
@@ -248,6 +261,44 @@ const RichTextEditor = ({
           disabled={disabled || isUploading}
         />
       </div>
+
+      {/* リンク入力フォーム */}
+      {showLinkInput && (
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-600">
+          <input
+            ref={linkInputRef}
+            type="url"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                confirmLink();
+              } else if (e.key === "Escape") {
+                setShowLinkInput(false);
+                setLinkUrl("");
+              }
+            }}
+            placeholder="https://example.com"
+            className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-500 rounded bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <button
+            type="button"
+            onClick={confirmLink}
+            disabled={!linkUrl.trim()}
+            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            確定
+          </button>
+          <button
+            type="button"
+            onClick={() => { setShowLinkInput(false); setLinkUrl(""); }}
+            className="px-2 py-1 text-sm text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* アップロードエラー */}
       {uploadError && (
