@@ -27,6 +27,7 @@ const RichTextEditor = ({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleImageFileRef = useRef<(file: File) => void>(() => {});
 
   const editor = useEditor({
     extensions: [
@@ -55,13 +56,13 @@ const RichTextEditor = ({
       attributes: {
         class: "prose prose-lg max-w-none dark:prose-invert min-h-[300px] focus:outline-none p-4",
       },
-      handleDrop: (view, event, _slice, moved) => {
+      handleDrop: (_view, event, _slice, moved) => {
         if (moved || !event.dataTransfer?.files?.length) return false;
 
         const file = event.dataTransfer.files[0];
         if (file && ALLOWED_IMAGE_TYPES.includes(file.type)) {
           event.preventDefault();
-          handleImageFile(file);
+          handleImageFileRef.current(file);
           return true;
         }
         return false;
@@ -73,7 +74,7 @@ const RichTextEditor = ({
         const file = files[0];
         if (file && ALLOWED_IMAGE_TYPES.includes(file.type)) {
           event.preventDefault();
-          handleImageFile(file);
+          handleImageFileRef.current(file);
           return true;
         }
         return false;
@@ -95,6 +96,7 @@ const RichTextEditor = ({
     }
   }, [disabled, editor]);
 
+  // handleImageFileの最新参照をrefに保持（editorPropsのクロージャから参照）
   const handleImageFile = useCallback(
     async (file: File) => {
       if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
@@ -125,6 +127,11 @@ const RichTextEditor = ({
     },
     [editor, onImageUpload],
   );
+
+  // refを最新に保つ
+  useEffect(() => {
+    handleImageFileRef.current = handleImageFile;
+  }, [handleImageFile]);
 
   const handleImageButtonClick = () => {
     fileInputRef.current?.click();

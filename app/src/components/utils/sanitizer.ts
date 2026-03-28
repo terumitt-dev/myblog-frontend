@@ -1,6 +1,12 @@
 // app/src/components/utils/sanitizer.ts
 import DOMPurify from "dompurify";
 
+// HTMLタグを除去してプレーンテキストにする
+export const stripHtmlTags = (html: string): string => {
+  if (!html) return "";
+  return html.replace(/<[^>]*>/g, "").trim();
+};
+
 // 入力サニタイズ（完全にプレーンテキスト化）
 export const sanitizeInput = (input: string): string => {
   if (!input) return "";

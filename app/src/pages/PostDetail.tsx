@@ -39,11 +39,6 @@ const PostDetail = () => {
         setIsLoading(true);
         setError(null);
 
-        console.log(
-          "PostDetail: ダミーデータから読み込み開始, postId:",
-          postId,
-        );
-
         // ブログ詳細を取得
         const blogResponse = await fetch(`${API_BASE}/blogs/${postId}`);
         if (!blogResponse.ok) {
@@ -54,7 +49,6 @@ const PostDetail = () => {
 
         const blogData = await blogResponse.json();
         setBlog(blogData);
-        console.log("✅ ブログデータ取得成功:", blogData.title);
 
         // コメントを取得
         const commentsResponse = await fetch(`${API_BASE}/blogs/${postId}/comments`);
@@ -64,11 +58,6 @@ const PostDetail = () => {
         } else {
           const commentsData = await commentsResponse.json();
           setComments(commentsData.comments || []);
-          console.log(
-            "✅ コメントデータ取得成功:",
-            commentsData.comments?.length || 0,
-            "件",
-          );
         }
       } catch (err) {
         console.error("PostDetail: データ読み込みエラー:", err);
@@ -92,8 +81,6 @@ const PostDetail = () => {
     setIsSubmittingComment(true);
 
     try {
-      console.log("💬 コメント投稿開始:", { name, content });
-
       const response = await fetch(`${API_BASE}/blogs/${postId}/comments`, {
         method: "POST",
         headers: {
@@ -114,14 +101,13 @@ const PostDetail = () => {
       }
 
       const result = await response.json();
-      console.log("✅ コメント投稿成功:", result);
 
       // 楽観的更新 - MSWハンドラは新規コメントオブジェクト自体を返す
       const newComment: Comment = result;
       setComments((prevComments) => [newComment, ...prevComments]);
       setIsWriting(false);
     } catch (error) {
-      console.error("❌ コメント投稿エラー:", error);
+      console.error("コメント投稿エラー:", error);
       alert("コメントの投稿に失敗しました。もう一度お試しください。");
     } finally {
       setIsSubmittingComment(false);

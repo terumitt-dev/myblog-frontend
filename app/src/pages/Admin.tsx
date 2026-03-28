@@ -9,6 +9,7 @@ import {
   validateAndSanitize,
   validateCategory,
   sanitizeInput,
+  stripHtmlTags,
 } from "@/components/utils/sanitizer";
 import { cn } from "@/components/utils/cn";
 import { CATEGORY_COLORS } from "@/components/utils/colors";
@@ -93,7 +94,7 @@ const Admin = () => {
 
       setPosts(blogPosts);
     } catch (error) {
-      console.error("❌ Admin: ダミーデータ読み込みエラー:", error);
+      console.error("Admin: 投稿読み込みエラー:", error);
       setError("投稿の読み込みに失敗しました");
       setPosts([]);
     } finally {
@@ -103,7 +104,7 @@ const Admin = () => {
 
   useEffect(() => {
     loadPosts();
-  }, []);
+  }, [loadPosts]);
 
   // カテゴリー表示名変換
   const getCategoryDisplayName = (categoryName: string) => {
@@ -135,14 +136,14 @@ const Admin = () => {
       return null;
     }
 
-    // contentはHTMLなのでsanitizeInputを通さず、長さチェックのみ
-    const strippedContent = content.replace(/<[^>]*>/g, "").trim();
+    // contentはHTMLなのでsanitizeInputを通さず、テキスト部分の長さでチェック
+    const strippedContent = stripHtmlTags(content);
     if (strippedContent.length === 0) {
       setError("内容を入力してください");
       return null;
     }
 
-    if (content.length > TEXT_LIMITS.CONTENT_MAX_LENGTH) {
+    if (strippedContent.length > TEXT_LIMITS.CONTENT_MAX_LENGTH) {
       setError(`内容は${TEXT_LIMITS.CONTENT_MAX_LENGTH}文字以内で入力してください`);
       return null;
     }
@@ -520,7 +521,7 @@ const Admin = () => {
                 placeholder="記事の内容を入力してください"
               />
               <p className="mt-1 text-sm text-gray-500">
-                {content.replace(/<[^>]*>/g, "").length} 文字（テキスト部分）
+                {stripHtmlTags(content).length} 文字（テキスト部分）
               </p>
             </div>
 
@@ -528,11 +529,11 @@ const Admin = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="submit"
-                disabled={isSaving || !title.trim() || !content.replace(/<[^>]*>/g, "").trim()}
+                disabled={isSaving || !title.trim() || !stripHtmlTags(content)}
                 className={cn(
                   "px-6 py-3 rounded-md font-medium transition-colors",
                   "focus:outline-none focus:ring-2 focus:ring-offset-2",
-                  isSaving || !title.trim() || !content.replace(/<[^>]*>/g, "").trim()
+                  isSaving || !title.trim() || !stripHtmlTags(content)
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
                 )}
@@ -609,7 +610,7 @@ const Admin = () => {
                     {/* 内容プレビュー */}
                     <div className="text-gray-600 dark:text-gray-300 text-sm line-clamp-3 mb-4">
                       {(() => {
-                        const text = post.content.replace(/<[^>]*>/g, "").trim();
+                        const text = stripHtmlTags(post.content);
                         return text.length > 100 ? text.substring(0, 100) + "..." : text;
                       })()}
                     </div>
