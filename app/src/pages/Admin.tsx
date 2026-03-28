@@ -138,7 +138,10 @@ const Admin = () => {
 
     // contentはHTMLなのでsanitizeInputを通さず、テキスト部分の長さでチェック
     const strippedContent = stripHtmlTags(content);
-    if (strippedContent.length === 0) {
+    const hasRenderableContent =
+      strippedContent.length > 0 || /<img\b[^>]*>/i.test(content);
+
+    if (!hasRenderableContent) {
       setError("内容を入力してください");
       return null;
     }
@@ -529,11 +532,17 @@ const Admin = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="submit"
-                disabled={isSaving || !title.trim() || !stripHtmlTags(content)}
+                disabled={
+                  isSaving ||
+                  !title.trim() ||
+                  (stripHtmlTags(content).length === 0 && !/<img\b[^>]*>/i.test(content))
+                }
                 className={cn(
                   "px-6 py-3 rounded-md font-medium transition-colors",
                   "focus:outline-none focus:ring-2 focus:ring-offset-2",
-                  isSaving || !title.trim() || !stripHtmlTags(content)
+                  isSaving ||
+                  !title.trim() ||
+                  (stripHtmlTags(content).length === 0 && !/<img\b[^>]*>/i.test(content))
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
                 )}
