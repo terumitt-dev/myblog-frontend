@@ -9,6 +9,7 @@ import {
   validateAndSanitize,
   validateCategory,
   sanitizeInput,
+  sanitizeHtml,
   stripHtmlTags,
 } from "@/components/utils/sanitizer";
 import { cn } from "@/components/utils/cn";
@@ -136,10 +137,11 @@ const Admin = () => {
       return null;
     }
 
-    // contentはHTMLなのでsanitizeInputを通さず、テキスト部分の長さでチェック
-    const strippedContent = stripHtmlTags(content);
+    // contentはHTMLなのでsanitizeInputを通さず、sanitizeHtmlで安全化してからチェック
+    const sanitizedContent = sanitizeHtml(content);
+    const strippedContent = stripHtmlTags(sanitizedContent);
     const hasRenderableContent =
-      strippedContent.length > 0 || /<img\b[^>]*>/i.test(content);
+      strippedContent.length > 0 || /<img\b[^>]*>/i.test(sanitizedContent);
 
     if (!hasRenderableContent) {
       setError("内容を入力してください");
@@ -158,7 +160,7 @@ const Admin = () => {
 
     return {
       sanitizedTitle: titleValidation.sanitized,
-      sanitizedContent: content,
+      sanitizedContent,
       sanitizedCategory: category,
     };
   };
@@ -532,17 +534,11 @@ const Admin = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 type="submit"
-                disabled={
-                  isSaving ||
-                  !title.trim() ||
-                  (stripHtmlTags(content).length === 0 && !/<img\b[^>]*>/i.test(content))
-                }
+                disabled={isSaving || !title.trim() || (!stripHtmlTags(content) && !/<img\b[^>]*>/i.test(content))}
                 className={cn(
                   "px-6 py-3 rounded-md font-medium transition-colors",
                   "focus:outline-none focus:ring-2 focus:ring-offset-2",
-                  isSaving ||
-                  !title.trim() ||
-                  (stripHtmlTags(content).length === 0 && !/<img\b[^>]*>/i.test(content))
+                  isSaving || !title.trim() || (!stripHtmlTags(content) && !/<img\b[^>]*>/i.test(content))
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
                 )}

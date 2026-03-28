@@ -159,9 +159,18 @@ const RichTextEditor = ({
 
   const confirmLink = useCallback(() => {
     if (!editor || !linkUrl.trim()) return;
-    editor.chain().focus().setLink({ href: linkUrl.trim() }).run();
-    setShowLinkInput(false);
-    setLinkUrl("");
+
+    const ALLOWED_PROTOCOLS = ["http:", "https:", "mailto:"];
+    try {
+      const url = new URL(linkUrl.trim(), window.location.origin);
+      if (!ALLOWED_PROTOCOLS.includes(url.protocol)) return;
+
+      editor.chain().focus().setLink({ href: url.toString() }).run();
+      setShowLinkInput(false);
+      setLinkUrl("");
+    } catch {
+      // 無効なURL
+    }
   }, [editor, linkUrl]);
 
   if (!editor) return null;
