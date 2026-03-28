@@ -115,10 +115,20 @@ const RichTextEditor = ({
       setIsUploading(true);
       setUploadError(null);
 
+      // await前にカーソル位置を保持（アップロード中にカーソルが動いても正しい位置に挿入）
+      const insertPosition = editor?.state.selection.from ?? null;
+
       try {
         const url = await onImageUpload(file);
         if (url && editor) {
-          editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+          if (insertPosition !== null) {
+            editor.commands.insertContentAt(insertPosition, {
+              type: "image",
+              attrs: { src: url, alt: file.name },
+            });
+          } else {
+            editor.chain().focus().setImage({ src: url, alt: file.name }).run();
+          }
         } else if (!url) {
           setUploadError("画像のアップロードに失敗しました");
         }
@@ -131,10 +141,13 @@ const RichTextEditor = ({
     [editor, onImageUpload],
   );
 
-  // refを最新に保つ
+  // refを最新に保つ（disabled/isUploading中はD&D/ペーストを遮断）
   useEffect(() => {
-    handleImageFileRef.current = handleImageFile;
-  }, [handleImageFile]);
+    handleImageFileRef.current = (file: File) => {
+      if (disabled || isUploading) return;
+      void handleImageFile(file);
+    };
+  }, [disabled, handleImageFile, isUploading]);
 
   const handleImageButtonClick = () => {
     fileInputRef.current?.click();

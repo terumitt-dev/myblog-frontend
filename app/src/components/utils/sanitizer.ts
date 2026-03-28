@@ -89,16 +89,48 @@ export const sanitizeHtml = (html: string): string => {
       FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "style"],
     });
 
-    // target="_blank" のリンクに noopener noreferrer を強制付与（リバースタブナビング対策）
+    // DOMPurify後の追加検証（多層防御）
     const doc = new DOMParser().parseFromString(sanitized, "text/html");
-    doc.querySelectorAll('a[target="_blank"]').forEach((anchor) => {
-      const relValues = new Set(
-        (anchor.getAttribute("rel") ?? "").split(/\s+/).filter(Boolean),
-      );
-      relValues.add("noopener");
-      relValues.add("noreferrer");
-      anchor.setAttribute("rel", Array.from(relValues).join(" "));
+    const allowedLinkProtocols = new Set(["http:", "https:", "mailto:"]);
+    const allowedImageProtocols = new Set(["http:", "https:"]);
+
+    // リンクのスキーム検証 + target="_blank" に noopener noreferrer を強制付与
+    doc.querySelectorAll("a[href]").forEach((anchor) => {
+      try {
+        const href = anchor.getAttribute("href") ?? "";
+        const url = new URL(href, window.location.origin);
+        if (!allowedLinkProtocols.has(url.protocol)) {
+          anchor.removeAttribute("href");
+          anchor.removeAttribute("target");
+          anchor.removeAttribute("rel");
+          return;
+        }
+        if (anchor.getAttribute("target") === "_blank") {
+          const relValues = new Set(
+            (anchor.getAttribute("rel") ?? "").split(/\s+/).filter(Boolean),
+          );
+          relValues.add("noopener");
+          relValues.add("noreferrer");
+          anchor.setAttribute("rel", Array.from(relValues).join(" "));
+        }
+      } catch {
+        anchor.removeAttribute("href");
+      }
     });
+
+    // 画像のスキーム検証（data:等を除去）
+    doc.querySelectorAll("img[src]").forEach((img) => {
+      try {
+        const src = img.getAttribute("src") ?? "";
+        const url = new URL(src, window.location.origin);
+        if (!allowedImageProtocols.has(url.protocol)) {
+          img.remove();
+        }
+      } catch {
+        img.remove();
+      }
+    });
+
     return doc.body.innerHTML;
   } catch (error) {
     console.error("HTML sanitization error:", error);
