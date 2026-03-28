@@ -73,7 +73,7 @@ export const sanitizeHtml = (html: string): string => {
   if (!html) return "";
 
   try {
-    return DOMPurify.sanitize(html, {
+    const sanitized = DOMPurify.sanitize(html, {
       ALLOWED_TAGS: [
         "p", "br", "h1", "h2", "h3", "h4", "h5", "h6",
         "a", "img", "figure", "figcaption",
@@ -88,6 +88,18 @@ export const sanitizeHtml = (html: string): string => {
       FORBID_TAGS: ["script", "style", "svg", "math", "object", "embed", "base", "link", "meta"],
       FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "style"],
     });
+
+    // target="_blank" のリンクに noopener noreferrer を強制付与（リバースタブナビング対策）
+    const doc = new DOMParser().parseFromString(sanitized, "text/html");
+    doc.querySelectorAll('a[target="_blank"]').forEach((anchor) => {
+      const relValues = new Set(
+        (anchor.getAttribute("rel") ?? "").split(/\s+/).filter(Boolean),
+      );
+      relValues.add("noopener");
+      relValues.add("noreferrer");
+      anchor.setAttribute("rel", Array.from(relValues).join(" "));
+    });
+    return doc.body.innerHTML;
   } catch (error) {
     console.error("HTML sanitization error:", error);
     return "";
