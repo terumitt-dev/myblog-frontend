@@ -12,6 +12,7 @@ import type { BlogWithCategoryName } from "@/types";
 import "./Category.css";
 import { getReadMoreButtonStyle } from "@/components/utils/colors";
 import { API_BASE } from "@/api/base";
+import { stripHtmlTags } from "@/components/utils/sanitizer";
 
 const Category = () => {
   const { category } = useParams<{ category: string }>();
@@ -446,10 +447,12 @@ const Category = () => {
                   </h2>
 
                   <div className="text-gray-700 dark:text-gray-300 line-clamp-3 mb-4">
-                    {post.content.length > TEXT_LIMITS.PREVIEW_LENGTH
-                      ? post.content.substring(0, TEXT_LIMITS.PREVIEW_LENGTH) +
-                        "..."
-                      : post.content}
+                    {(() => {
+                      const text = stripHtmlTags(post.content);
+                      return text.length > TEXT_LIMITS.PREVIEW_LENGTH
+                        ? text.substring(0, TEXT_LIMITS.PREVIEW_LENGTH) + "..."
+                        : text;
+                    })()}
                   </div>
 
                   <Link

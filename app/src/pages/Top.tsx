@@ -8,6 +8,7 @@ import Container from "@/components/layouts/Container";
 import { cn } from "@/components/utils/cn";
 import type { BlogWithCategoryName } from "@/types";
 import { getReadMoreButtonStyle, CATEGORY_COLORS } from "@/components/utils/colors";
+import { stripHtmlTags } from "@/components/utils/sanitizer";
 import { API_BASE } from "@/api/base";
 
 const Top = () => {
@@ -216,9 +217,10 @@ const Top = () => {
                       </h3>
 
                       <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-3 mb-4">
-                        {post.content.length > 100
-                          ? post.content.substring(0, 100) + "..."
-                          : post.content}
+                        {(() => {
+                          const text = stripHtmlTags(post.content);
+                          return text.length > 100 ? text.substring(0, 100) + "..." : text;
+                        })()}
                       </p>
 
                       <Link

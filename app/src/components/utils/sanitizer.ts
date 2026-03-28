@@ -1,6 +1,13 @@
 // app/src/components/utils/sanitizer.ts
 import DOMPurify from "dompurify";
 
+// HTMLタグを除去してプレーンテキストにする
+export const stripHtmlTags = (html: string): string => {
+  if (!html) return "";
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return (doc.body.textContent ?? "").trim();
+};
+
 // 入力サニタイズ（完全にプレーンテキスト化）
 export const sanitizeInput = (input: string): string => {
   if (!input) return "";
@@ -59,6 +66,76 @@ export const sanitizeInput = (input: string): string => {
       .replace(/&gt;/g, ">")
       .replace(/&amp;/g, "&")
       .trim();
+  }
+};
+
+// HTML表示用サニタイズ（安全なタグを許可して描画用に使用）
+export const sanitizeHtml = (html: string): string => {
+  if (!html) return "";
+
+  try {
+    const sanitized = DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: [
+        "p", "br", "h1", "h2", "h3", "h4", "h5", "h6",
+        "a", "img", "figure", "figcaption",
+        "ul", "ol", "li", "blockquote", "pre", "code",
+        "em", "strong",
+      ],
+      ALLOWED_ATTR: [
+        "href", "src", "alt", "width", "height", "class",
+        "target", "rel", "loading",
+      ],
+      ALLOW_DATA_ATTR: false,
+      FORBID_TAGS: ["script", "style", "svg", "math", "object", "embed", "base", "link", "meta"],
+      FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "style"],
+    });
+
+    // DOMPurify後の追加検証（多層防御）
+    const doc = new DOMParser().parseFromString(sanitized, "text/html");
+    const allowedLinkProtocols = new Set(["http:", "https:", "mailto:"]);
+    const allowedImageProtocols = new Set(["http:", "https:"]);
+
+    // リンクのスキーム検証 + target="_blank" に noopener noreferrer を強制付与
+    doc.querySelectorAll("a[href]").forEach((anchor) => {
+      try {
+        const href = anchor.getAttribute("href") ?? "";
+        const url = new URL(href, window.location.origin);
+        if (!allowedLinkProtocols.has(url.protocol)) {
+          anchor.removeAttribute("href");
+          anchor.removeAttribute("target");
+          anchor.removeAttribute("rel");
+          return;
+        }
+        if (anchor.getAttribute("target") === "_blank") {
+          const relValues = new Set(
+            (anchor.getAttribute("rel") ?? "").split(/\s+/).filter(Boolean),
+          );
+          relValues.add("noopener");
+          relValues.add("noreferrer");
+          anchor.setAttribute("rel", Array.from(relValues).join(" "));
+        }
+      } catch {
+        anchor.removeAttribute("href");
+      }
+    });
+
+    // 画像のスキーム検証（data:等を除去）
+    doc.querySelectorAll("img[src]").forEach((img) => {
+      try {
+        const src = img.getAttribute("src") ?? "";
+        const url = new URL(src, window.location.origin);
+        if (!allowedImageProtocols.has(url.protocol)) {
+          img.remove();
+        }
+      } catch {
+        img.remove();
+      }
+    });
+
+    return doc.body.innerHTML;
+  } catch (error) {
+    console.error("HTML sanitization error:", error);
+    return "";
   }
 };
 
