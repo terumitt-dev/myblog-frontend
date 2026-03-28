@@ -156,7 +156,8 @@ const RichTextEditor = ({
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (file) handleImageFile(file);
+    if (!file || disabled || isUploading) return;
+    handleImageFileRef.current(file);
   };
 
   const toggleLinkInput = useCallback(() => {
@@ -198,7 +199,7 @@ const RichTextEditor = ({
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           isActive={editor.isActive("heading", { level: 2 })}
-          disabled={disabled}
+          disabled={disabled || isUploading}
           title="見出し2"
         >
           H2
@@ -206,7 +207,7 @@ const RichTextEditor = ({
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
           isActive={editor.isActive("heading", { level: 3 })}
-          disabled={disabled}
+          disabled={disabled || isUploading}
           title="見出し3"
         >
           H3
@@ -217,7 +218,7 @@ const RichTextEditor = ({
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={editor.isActive("bold")}
-          disabled={disabled}
+          disabled={disabled || isUploading}
           title="太字"
         >
           B
@@ -225,7 +226,7 @@ const RichTextEditor = ({
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
           isActive={editor.isActive("italic")}
-          disabled={disabled}
+          disabled={disabled || isUploading}
           title="イタリック"
         >
           I
@@ -236,7 +237,7 @@ const RichTextEditor = ({
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBulletList().run()}
           isActive={editor.isActive("bulletList")}
-          disabled={disabled}
+          disabled={disabled || isUploading}
           title="箇条書き"
         >
           ・
@@ -244,7 +245,7 @@ const RichTextEditor = ({
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           isActive={editor.isActive("orderedList")}
-          disabled={disabled}
+          disabled={disabled || isUploading}
           title="番号付きリスト"
         >
           1.
@@ -252,7 +253,7 @@ const RichTextEditor = ({
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
           isActive={editor.isActive("blockquote")}
-          disabled={disabled}
+          disabled={disabled || isUploading}
           title="引用"
         >
           &quot;
@@ -263,7 +264,7 @@ const RichTextEditor = ({
         <ToolbarButton
           onClick={toggleLinkInput}
           isActive={editor.isActive("link") || showLinkInput}
-          disabled={disabled}
+          disabled={disabled || isUploading}
           title="リンク"
         >
           🔗
