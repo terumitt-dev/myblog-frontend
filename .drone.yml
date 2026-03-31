@@ -42,7 +42,7 @@ steps:
     commands:
       - echo "🐳 Starting Docker daemon..."
       - dockerd-entrypoint.sh &
-      - sleep 5
+      - until docker info >/dev/null 2>&1; do echo "Waiting for Docker..."; sleep 1; done
 
       - echo "🔐 Logging in to ECR..."
       - apk add --no-cache aws-cli
@@ -57,5 +57,3 @@ steps:
 
       - echo "✅ Image pushed successfully"
       - echo "   → $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}"
-    when:
-      branch: [main]
