@@ -1,0 +1,61 @@
+---
+kind: pipeline
+type: docker
+name: build-and-push
+
+trigger:
+  branch: [main]
+  event: [push]
+
+steps:
+  - name: check-vars
+    image: alpine
+    environment:
+      AWS_REGION:
+        from_secret: AWS_REGION
+      AWS_ACCESS_KEY_ID:
+        from_secret: AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      ECR_REGISTRY:
+        from_secret: ECR_REGISTRY
+    commands:
+      - set -euo pipefail
+      - '[ -n "$AWS_REGION" ] || (echo "❌ AWS_REGION is not set" && exit 1)'
+      - '[ -n "$AWS_ACCESS_KEY_ID" ] || (echo "❌ AWS_ACCESS_KEY_ID is not set" && exit 1)'
+      - '[ -n "$AWS_SECRET_ACCESS_KEY" ] || (echo "❌ AWS_SECRET_ACCESS_KEY is not set" && exit 1)'
+      - '[ -n "$ECR_REGISTRY" ] || (echo "❌ ECR_REGISTRY is not set" && exit 1)'
+      - echo "✅ All required variables are set"
+
+  - name: build-and-push
+    image: docker:24-dind
+    privileged: true
+    environment:
+      AWS_REGION:
+        from_secret: AWS_REGION
+      AWS_ACCESS_KEY_ID:
+        from_secret: AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      ECR_REGISTRY:
+        from_secret: ECR_REGISTRY
+    commands:
+      - echo "🐳 Starting Docker daemon..."
+      - dockerd-entrypoint.sh &
+      - sleep 5
+
+      - echo "🔐 Logging in to ECR..."
+      - apk add --no-cache aws-cli
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+      - echo "🔨 Building Docker image..."
+      - docker build -f app/Dockerfile.prod --build-arg VITE_API_BASE_URL=/api -t $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA} -t $ECR_REGISTRY/go-lilaregard-frontend:latest app/
+
+      - echo "🚀 Pushing to ECR..."
+      - docker push $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}
+      - docker push $ECR_REGISTRY/go-lilaregard-frontend:latest
+
+      - echo "✅ Image pushed successfully"
+      - echo "   → $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}"
+    when:
+      branch: [main]
