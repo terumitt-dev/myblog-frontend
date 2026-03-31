@@ -42,7 +42,13 @@ steps:
     commands:
       - echo "🐳 Starting Docker daemon..."
       - dockerd-entrypoint.sh &
-      - until docker info >/dev/null 2>&1; do echo "Waiting for Docker..."; sleep 1; done
+      - |
+        for i in $(seq 1 60); do
+          if docker info >/dev/null 2>&1; then break; fi
+          echo "Waiting for Docker..."
+          sleep 1
+          if [ "$i" -eq 60 ]; then echo "❌ Docker daemon failed to start"; exit 1; fi
+        done
 
       - echo "🔐 Logging in to ECR..."
       - apk add --no-cache aws-cli
