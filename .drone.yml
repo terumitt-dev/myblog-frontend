@@ -4,7 +4,7 @@ type: docker
 name: build-and-push
 
 trigger:
-  branch: [main]
+  branch: [main, develop]
   event: [push]
 
 steps:
@@ -27,7 +27,26 @@ steps:
       - '[ -n "$ECR_REGISTRY" ] || (echo "❌ ECR_REGISTRY is not set" && exit 1)'
       - echo "✅ All required variables are set"
 
-  - name: build-and-push
+  - name: build
+    image: docker:24-dind
+    privileged: true
+    commands:
+      - set -euo pipefail
+      - echo "🐳 Starting Docker daemon..."
+      - dockerd-entrypoint.sh &
+      - |
+        for i in $(seq 1 60); do
+          if docker info >/dev/null 2>&1; then break; fi
+          echo "Waiting for Docker..."
+          sleep 1
+          if [ "$i" -eq 60 ]; then echo "❌ Docker daemon failed to start"; exit 1; fi
+        done
+
+      - echo "🔨 Building Docker image (dry-run)..."
+      - docker build -f app/Dockerfile.prod --build-arg VITE_API_BASE_URL=/api -t go-lilaregard-frontend:${DRONE_COMMIT_SHA} app/
+      - echo "✅ Build succeeded"
+
+  - name: push-to-ecr
     image: docker:24-dind
     privileged: true
     environment:
@@ -64,3 +83,5 @@ steps:
 
       - echo "✅ Image pushed successfully"
       - echo "   → $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}"
+    when:
+      branch: [main]
