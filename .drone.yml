@@ -40,6 +40,7 @@ steps:
       ECR_REGISTRY:
         from_secret: ECR_REGISTRY
     commands:
+      - set -euo pipefail
       - echo "🐳 Starting Docker daemon..."
       - dockerd-entrypoint.sh &
       - |
