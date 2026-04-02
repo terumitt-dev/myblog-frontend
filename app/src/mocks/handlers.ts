@@ -347,15 +347,19 @@ export const handlers = [
         category: CategoryKey | number | string;
       };
 
-      // カテゴリ正規化（数値→文字列変換、GETフィルタと同じロジック）
+      // カテゴリ正規化（数値・数値文字列・文字列に対応、GETフィルタと同じロジック）
       const validCategories: CategoryKey[] = ["hobby", "tech", "other", "uncategorized"];
       const numToCategoryMap: Record<number, CategoryKey> = { 0: "hobby", 1: "tech", 2: "other" };
-      const normalizedCategory =
-        typeof body.category === "number"
-          ? numToCategoryMap[body.category]
-          : body.category;
+      let normalizedCategory: CategoryKey | undefined;
+      if (typeof body.category === "number") {
+        normalizedCategory = numToCategoryMap[body.category];
+      } else if (typeof body.category === "string" && /^\d+$/.test(body.category)) {
+        normalizedCategory = numToCategoryMap[parseInt(body.category, 10)];
+      } else {
+        normalizedCategory = body.category as CategoryKey;
+      }
 
-      if (!body.title || !body.content || !normalizedCategory || !validCategories.includes(normalizedCategory as CategoryKey)) {
+      if (!body.title || !body.content || !normalizedCategory || !validCategories.includes(normalizedCategory)) {
         return HttpResponse.json(
           { message: "必要な項目が不足しています" },
           { status: 400 },
