@@ -1,11 +1,105 @@
----
+# =========================
+# CI Pipeline (build & verify)
+# =========================
 kind: pipeline
 type: docker
-name: build-and-push
+name: ci
 
 trigger:
   branch: [main, develop]
   event: [push]
+
+steps:
+  - name: build-and-verify
+    image: docker:24-dind
+    privileged: true
+    commands:
+      - set -euo pipefail
+      - echo "🐳 Starting Docker daemon..."
+      - dockerd-entrypoint.sh &
+      - |
+        for i in $(seq 1 60); do
+          if docker info >/dev/null 2>&1; then break; fi
+          echo "Waiting for Docker..."
+          sleep 1
+          if [ "$i" -eq 60 ]; then echo "❌ Docker daemon failed to start"; exit 1; fi
+        done
+
+      - echo "🔨 Building Docker image..."
+      - docker build -f app/Dockerfile.prod --build-arg VITE_API_BASE_URL=/api -t go-lilaregard-frontend:ci app/
+      - echo "✅ Build succeeded"
+
+      - echo ""
+      - echo "📏 Image size check..."
+      - docker images go-lilaregard-frontend:ci --format "   Size:{{.Size}}"
+      - echo ""
+
+      - echo "🏥 Container startup check..."
+      - |
+        docker run -d --name frontend-ci \
+          -p 8080:80 \
+          go-lilaregard-frontend:ci
+
+        echo "   Waiting for container to start..."
+        for i in $(seq 1 30); do
+          if docker ps --filter name=frontend-ci --format "{{.Status}}" | grep -q "Up"; then
+            break
+          fi
+          sleep 1
+          if [ "$i" -eq 30 ]; then
+            echo "❌ Container failed to start"
+            docker logs frontend-ci 2>&1 | tail -20
+            exit 1
+          fi
+        done
+
+        echo "   Container status:"
+        docker ps --filter name=frontend-ci --format "   {{.Status}}"
+        echo "✅ Container is running"
+
+      - echo ""
+      - echo "🌐 Health check..."
+      - |
+        HTTP_STATUS=$(wget -qO- -S http://localhost:8080/ 2>&1 | head -1)
+        if wget -qO- http://localhost:8080/ | grep -q "<!DOCTYPE html>"; then
+          echo "✅ Health check passed (index.html served correctly)"
+        else
+          echo "❌ Health check failed (index.html not served)"
+          docker logs frontend-ci 2>&1 | tail -20
+          docker stop frontend-ci && docker rm frontend-ci
+          exit 1
+        fi
+
+      - echo ""
+      - echo "🔒 API fallback check..."
+      - |
+        API_STATUS=$(wget -qS http://localhost:8080/api/ 2>&1 | grep "HTTP/" | awk '{print $2}' || echo "000")
+        if echo "$API_STATUS" | grep -q "404"; then
+          echo "✅ /api/ correctly returns 404 (SPA fallback excluded)"
+        else
+          echo "⚠️ /api/ returned unexpected status: $API_STATUS"
+        fi
+
+      - echo ""
+      - echo "🧹 Cleanup..."
+      - docker stop frontend-ci && docker rm frontend-ci
+      - echo ""
+      - echo "✅ All CI checks passed"
+
+---
+# =========================
+# CD Pipeline (ECR push)
+# =========================
+kind: pipeline
+type: docker
+name: cd
+
+trigger:
+  branch: [main]
+  event: [push]
+
+depends_on:
+  - ci
 
 steps:
   - name: check-vars
@@ -27,26 +121,7 @@ steps:
       - '[ -n "$ECR_REGISTRY" ] || (echo "❌ ECR_REGISTRY is not set" && exit 1)'
       - echo "✅ All required variables are set"
 
-  - name: build
-    image: docker:24-dind
-    privileged: true
-    commands:
-      - set -euo pipefail
-      - echo "🐳 Starting Docker daemon..."
-      - dockerd-entrypoint.sh &
-      - |
-        for i in $(seq 1 60); do
-          if docker info >/dev/null 2>&1; then break; fi
-          echo "Waiting for Docker..."
-          sleep 1
-          if [ "$i" -eq 60 ]; then echo "❌ Docker daemon failed to start"; exit 1; fi
-        done
-
-      - echo "🔨 Building Docker image (dry-run)..."
-      - docker build -f app/Dockerfile.prod --build-arg VITE_API_BASE_URL=/api -t go-lilaregard-frontend:${DRONE_COMMIT_SHA} app/
-      - echo "✅ Build succeeded"
-
-  - name: push-to-ecr
+  - name: build-and-push
     image: docker:24-dind
     privileged: true
     environment:
@@ -83,5 +158,3 @@ steps:
 
       - echo "✅ Image pushed successfully"
       - echo "   → $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}"
-    when:
-      branch: [main]
