@@ -179,7 +179,7 @@ const getBlogsLogic = (request: Request) => {
       }
     }
     // カテゴリが名前文字列の場合（例: "hobby", "tech", "other"）
-    else if (["hobby", "tech", "other"].includes(category)) {
+    else if (["hobby", "tech", "other", "uncategorized"].includes(category)) {
       categoryKey = category as CategoryKey;
     }
 
@@ -348,7 +348,8 @@ export const handlers = [
       };
 
       // 簡単なバリデーション
-      if (!body.title || !body.content || body.category === undefined) {
+      const validCategories: CategoryKey[] = ["hobby", "tech", "other", "uncategorized"];
+      if (!body.title || !body.content || !validCategories.includes(body.category)) {
         return HttpResponse.json(
           { message: "必要な項目が不足しています" },
           { status: 400 },
