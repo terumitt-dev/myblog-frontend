@@ -3,15 +3,11 @@ import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useBubbleGeneration } from "../useBubbleGeneration";
 
-// モック
-const mockSetTimeout = vi.fn();
-const mockClearTimeout = vi.fn();
-
 describe("useBubbleGeneration", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    (globalThis as any).setTimeout = mockSetTimeout;
-    (globalThis as any).clearTimeout = mockClearTimeout;
+    vi.spyOn(globalThis, "setTimeout");
+    vi.spyOn(globalThis, "clearTimeout");
   });
 
   afterEach(() => {

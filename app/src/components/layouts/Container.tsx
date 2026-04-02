@@ -6,7 +6,7 @@ interface ContainerProps {
   children: React.ReactNode;
   className?: string;
   id?: string;
-  role?: string;
+  role?: React.AriaRole;
   size?: "main" | "narrow" | "wide" | "full"; // コンテナサイズのバリエーションを追加
   padding?:
     | "default"
