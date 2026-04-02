@@ -10,25 +10,6 @@ trigger:
   event: [push]
 
 steps:
-  - name: check-vars
-    image: alpine
-    environment:
-      AWS_REGION:
-        from_secret: AWS_REGION
-      AWS_ACCESS_KEY_ID:
-        from_secret: AWS_ACCESS_KEY_ID
-      AWS_SECRET_ACCESS_KEY:
-        from_secret: AWS_SECRET_ACCESS_KEY
-      ECR_REGISTRY:
-        from_secret: ECR_REGISTRY
-    commands:
-      - set -euo pipefail
-      - '[ -n "$AWS_REGION" ] || (echo "❌ AWS_REGION is not set" && exit 1)'
-      - '[ -n "$AWS_ACCESS_KEY_ID" ] || (echo "❌ AWS_ACCESS_KEY_ID is not set" && exit 1)'
-      - '[ -n "$AWS_SECRET_ACCESS_KEY" ] || (echo "❌ AWS_SECRET_ACCESS_KEY is not set" && exit 1)'
-      - '[ -n "$ECR_REGISTRY" ] || (echo "❌ ECR_REGISTRY is not set" && exit 1)'
-      - echo "✅ All required variables are set"
-
   - name: build-dry-run
     image: docker:24-dind
     privileged: true
@@ -64,6 +45,25 @@ depends_on:
   - ci
 
 steps:
+  - name: check-vars
+    image: alpine
+    environment:
+      AWS_REGION:
+        from_secret: AWS_REGION
+      AWS_ACCESS_KEY_ID:
+        from_secret: AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      ECR_REGISTRY:
+        from_secret: ECR_REGISTRY
+    commands:
+      - set -euo pipefail
+      - '[ -n "$AWS_REGION" ] || (echo "❌ AWS_REGION is not set" && exit 1)'
+      - '[ -n "$AWS_ACCESS_KEY_ID" ] || (echo "❌ AWS_ACCESS_KEY_ID is not set" && exit 1)'
+      - '[ -n "$AWS_SECRET_ACCESS_KEY" ] || (echo "❌ AWS_SECRET_ACCESS_KEY is not set" && exit 1)'
+      - '[ -n "$ECR_REGISTRY" ] || (echo "❌ ECR_REGISTRY is not set" && exit 1)'
+      - echo "✅ All required variables are set"
+
   - name: build-and-push
     image: docker:24-dind
     privileged: true
