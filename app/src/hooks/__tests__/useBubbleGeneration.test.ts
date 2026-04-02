@@ -10,8 +10,8 @@ const mockClearTimeout = vi.fn();
 describe("useBubbleGeneration", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    global.setTimeout = mockSetTimeout;
-    global.clearTimeout = mockClearTimeout;
+    (globalThis as any).setTimeout = mockSetTimeout;
+    (globalThis as any).clearTimeout = mockClearTimeout;
   });
 
   afterEach(() => {

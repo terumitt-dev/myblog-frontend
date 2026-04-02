@@ -2,12 +2,12 @@
 import { memo } from "react";
 import { useTheme } from "@/context/ThemeContext";
 import { Sun, Moon } from "lucide-react";
-import { useStaticEffects } from "@/hooks/useStaticEffects";
+import { useAccessibility } from "@/hooks/useAccessibility";
 
 const ThemeToggle = () => {
   const { theme, toggleTheme } = useTheme();
-  // useStaticEffectsからアクセシビリティ状態を取得
-  const { highContrast } = useStaticEffects(undefined);
+  // useAccessibilityからアクセシビリティ状態を取得
+  const { highContrast } = useAccessibility();
 
   // 高コントラストモード用のクラス
   const buttonClass = `p-2 rounded-full border transition-colors ${

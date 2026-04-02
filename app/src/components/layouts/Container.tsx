@@ -5,6 +5,8 @@ import { cn } from "@/components/utils/cn";
 interface ContainerProps {
   children: React.ReactNode;
   className?: string;
+  id?: string;
+  role?: string;
   size?: "main" | "narrow" | "wide" | "full"; // コンテナサイズのバリエーションを追加
   padding?:
     | "default"
@@ -17,6 +19,8 @@ interface ContainerProps {
 const Container: React.FC<ContainerProps> = ({
   children,
   className,
+  id,
+  role,
   size = "main", // デフォルトはmain
   padding = "default", // デフォルトはdefault
 }) => {
@@ -37,6 +41,8 @@ const Container: React.FC<ContainerProps> = ({
 
   return (
     <div
+      id={id}
+      role={role}
       className={cn(
         sizeClasses[size],
         paddingClasses[padding],
