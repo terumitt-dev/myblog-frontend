@@ -1,5 +1,5 @@
 # =========================
-# CI Pipeline (dry-run)
+# CI Pipeline (build & verify)
 # =========================
 kind: pipeline
 type: docker
@@ -10,7 +10,7 @@ trigger:
   event: [push]
 
 steps:
-  - name: build-dry-run
+  - name: build-and-verify
     image: docker:24-dind
     privileged: true
     commands:
@@ -25,9 +25,63 @@ steps:
           if [ "$i" -eq 60 ]; then echo "❌ Docker daemon failed to start"; exit 1; fi
         done
 
-      - echo "🔨 Building Docker image (dry-run)..."
-      - docker build -f app/Dockerfile.prod --build-arg VITE_API_BASE_URL=/api -t go-lilaregard-frontend:dry-run app/
+      - echo "🔨 Building Docker image..."
+      - docker build -f app/Dockerfile.prod --build-arg VITE_API_BASE_URL=/api -t go-lilaregard-frontend:ci app/
       - echo "✅ Build succeeded"
+
+      - echo ""
+      - echo "📏 Image size check..."
+      - docker images go-lilaregard-frontend:ci --format "   Size:{{.Size}}"
+      - echo ""
+
+      - echo "🏥 Container startup check..."
+      - |
+        docker run -d --name frontend-ci \
+          -p 8080:80 \
+          go-lilaregard-frontend:ci
+
+        echo "   Waiting for container to start..."
+        sleep 5
+
+        echo "   Container status:"
+        docker ps --filter name=frontend-ci --format "   {{.Status}}"
+
+        if ! docker ps --filter name=frontend-ci --format "{{.Status}}" | grep -q "Up"; then
+          echo "❌ Container failed to start"
+          echo "   Container logs:"
+          docker logs frontend-ci 2>&1 | tail -20
+          exit 1
+        fi
+        echo "✅ Container is running"
+
+      - echo ""
+      - echo "🌐 Health check..."
+      - |
+        HTTP_STATUS=$(wget -qO- -S http://localhost:8080/ 2>&1 | head -1)
+        if wget -qO- http://localhost:8080/ | grep -q "<!DOCTYPE html>"; then
+          echo "✅ Health check passed (index.html served correctly)"
+        else
+          echo "❌ Health check failed (index.html not served)"
+          docker logs frontend-ci 2>&1 | tail -20
+          docker stop frontend-ci && docker rm frontend-ci
+          exit 1
+        fi
+
+      - echo ""
+      - echo "🔒 API fallback check..."
+      - |
+        API_STATUS=$(wget -qS http://localhost:8080/api/ 2>&1 | grep "HTTP/" | awk '{print $2}' || echo "000")
+        if echo "$API_STATUS" | grep -q "404"; then
+          echo "✅ /api/ correctly returns 404 (SPA fallback excluded)"
+        else
+          echo "⚠️ /api/ returned unexpected status: $API_STATUS"
+        fi
+
+      - echo ""
+      - echo "🧹 Cleanup..."
+      - docker stop frontend-ci && docker rm frontend-ci
+      - echo ""
+      - echo "✅ All CI checks passed"
 
 ---
 # =========================
