@@ -1,7 +1,9 @@
----
+# =========================
+# CI Pipeline (dry-run)
+# =========================
 kind: pipeline
 type: docker
-name: build-and-push
+name: ci
 
 trigger:
   branch: [main, develop]
@@ -27,7 +29,7 @@ steps:
       - '[ -n "$ECR_REGISTRY" ] || (echo "❌ ECR_REGISTRY is not set" && exit 1)'
       - echo "✅ All required variables are set"
 
-  - name: build
+  - name: build-dry-run
     image: docker:24-dind
     privileged: true
     commands:
@@ -43,10 +45,26 @@ steps:
         done
 
       - echo "🔨 Building Docker image (dry-run)..."
-      - docker build -f app/Dockerfile.prod --build-arg VITE_API_BASE_URL=/api -t go-lilaregard-frontend:${DRONE_COMMIT_SHA} app/
+      - docker build -f app/Dockerfile.prod --build-arg VITE_API_BASE_URL=/api -t go-lilaregard-frontend:dry-run app/
       - echo "✅ Build succeeded"
 
-  - name: push-to-ecr
+---
+# =========================
+# CD Pipeline (ECR push)
+# =========================
+kind: pipeline
+type: docker
+name: cd
+
+trigger:
+  branch: [main]
+  event: [push]
+
+depends_on:
+  - ci
+
+steps:
+  - name: build-and-push
     image: docker:24-dind
     privileged: true
     environment:
@@ -83,5 +101,3 @@ steps:
 
       - echo "✅ Image pushed successfully"
       - echo "   → $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}"
-    when:
-      branch: [main]
