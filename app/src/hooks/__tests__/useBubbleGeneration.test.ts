@@ -12,8 +12,8 @@ describe("useBubbleGeneration", () => {
 
   afterEach(() => {
     vi.clearAllTimers();
-    vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it("techカテゴリの場合にバブルが生成される", () => {

@@ -183,12 +183,10 @@ const getBlogsLogic = (request: Request) => {
       categoryKey = category as CategoryKey;
     }
 
-    // 有効なカテゴリキーでフィルタリング
-    if (categoryKey !== null) {
-      filteredBlogs = blogs.filter(
-        (blog: Blog) => blog.category === categoryKey,
-      );
-    }
+    filteredBlogs =
+      categoryKey === null
+        ? []
+        : blogs.filter((blog: Blog) => blog.category === categoryKey);
   }
 
   // ページネーション
