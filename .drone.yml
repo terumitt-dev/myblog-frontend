@@ -6,8 +6,7 @@ type: docker
 name: ci
 
 trigger:
-  branch: [main, develop]
-  event: [push]
+  event: [push, pull_request]
 
 steps:
   - name: build-and-verify
