@@ -11,7 +11,7 @@ describe("useBubbleGeneration", () => {
   });
 
   afterEach(() => {
-    vi.runOnlyPendingTimers();
+    vi.clearAllTimers();
     vi.useRealTimers();
     vi.restoreAllMocks();
   });
