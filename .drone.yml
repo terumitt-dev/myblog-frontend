@@ -6,6 +6,7 @@ type: docker
 name: ci-cd
 
 trigger:
+  event: [push, pull_request]
   branch: [main, develop]
 
 steps:
