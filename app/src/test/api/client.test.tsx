@@ -167,7 +167,7 @@ describe("認証API (useAuthenticatedApi)", () => {
       await result.current.blogsApi.create({
         title: "Test",
         content: "Content",
-        category: "Tech",
+        category: "tech",
       });
 
       const callArgs = mockFetch.mock.calls[0];

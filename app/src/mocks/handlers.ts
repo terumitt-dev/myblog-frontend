@@ -1,14 +1,15 @@
 // app/src/mocks/handlers.ts
 import { http, HttpResponse } from "msw";
-import type { BlogCategory, Blog, Comment } from "@/types";
+import type { Blog, Comment, CategoryKey } from "@/types";
 
 const API_BASE = "/api";
 
 // カテゴリ名マッピング（フロントエンドの期待値に合わせる）
-const CATEGORY_NAMES: Record<BlogCategory, string> = {
-  0: "hobby",
-  1: "tech",
-  2: "other",
+const CATEGORY_NAMES: Record<CategoryKey, string> = {
+  hobby: "hobby",
+  tech: "tech",
+  other: "other",
+  uncategorized: "uncategorized",
 };
 
 // モックデータ（開発環境用）
@@ -17,7 +18,7 @@ const createInitialBlogs = (): Blog[] => [
     id: 1,
     title: "React 19の新機能について",
     content: "React 19がリリースされ、多くの新機能が追加されました。",
-    category: 1,
+    category: "tech",
     created_at: "2024-12-14T15:30:00.000Z",
     updated_at: "2024-12-15T10:00:00.000Z",
   },
@@ -25,7 +26,7 @@ const createInitialBlogs = (): Blog[] => [
     id: 2,
     title: "TypeScript 5.3の型推論改善",
     content: "TypeScript 5.3で型推論がさらに強化されました。",
-    category: 1,
+    category: "tech",
     created_at: "2024-12-13T14:20:00.000Z",
     updated_at: "2024-12-14T09:30:00.000Z",
   },
@@ -33,7 +34,7 @@ const createInitialBlogs = (): Blog[] => [
     id: 3,
     title: "週末の登山記録",
     content: "週末に近くの山に登ってきました。天気も良く最高でした。",
-    category: 0,
+    category: "hobby",
     created_at: "2024-12-12T18:45:00.000Z",
     updated_at: "2024-12-13T08:15:00.000Z",
   },
@@ -167,27 +168,25 @@ const getBlogsLogic = (request: Request) => {
 
   // カテゴリフィルター（数値と文字列の両方に対応）
   if (category) {
-    let categoryNumber: number | null = null;
+    let categoryKey: CategoryKey | null = null;
 
     // カテゴリが数値文字列の場合（例: "0", "1", "2"）
     if (/^\d+$/.test(category)) {
       const numericCategory = parseInt(category, 10);
-      if ([0, 1, 2].includes(numericCategory)) {
-        categoryNumber = numericCategory;
+      const numToCategoryMap: Record<number, CategoryKey> = { 0: "hobby", 1: "tech", 2: "other" };
+      if (numericCategory in numToCategoryMap) {
+        categoryKey = numToCategoryMap[numericCategory];
       }
     }
     // カテゴリが名前文字列の場合（例: "hobby", "tech", "other"）
-    else if (["hobby", "tech", "other"].includes(category)) {
-      const categoryMap = { hobby: 0, tech: 1, other: 2 };
-      categoryNumber = categoryMap[category as keyof typeof categoryMap];
+    else if (["hobby", "tech", "other", "uncategorized"].includes(category)) {
+      categoryKey = category as CategoryKey;
     }
 
-    // 有効なカテゴリ番号でフィルタリング
-    if (categoryNumber !== null) {
-      filteredBlogs = blogs.filter(
-        (blog: Blog) => blog.category === categoryNumber,
-      );
-    }
+    filteredBlogs =
+      categoryKey === null
+        ? []
+        : blogs.filter((blog: Blog) => blog.category === categoryKey);
   }
 
   // ページネーション
@@ -343,11 +342,22 @@ export const handlers = [
       const body = (await request.json()) as {
         title: string;
         content: string;
-        category: BlogCategory;
+        category: CategoryKey | number | string;
       };
 
-      // 簡単なバリデーション
-      if (!body.title || !body.content || body.category === undefined) {
+      // カテゴリ正規化（数値・数値文字列・文字列に対応、GETフィルタと同じロジック）
+      const validCategories: CategoryKey[] = ["hobby", "tech", "other", "uncategorized"];
+      const numToCategoryMap: Record<number, CategoryKey> = { 0: "hobby", 1: "tech", 2: "other" };
+      let normalizedCategory: CategoryKey | undefined;
+      if (typeof body.category === "number") {
+        normalizedCategory = numToCategoryMap[body.category];
+      } else if (typeof body.category === "string" && /^\d+$/.test(body.category)) {
+        normalizedCategory = numToCategoryMap[parseInt(body.category, 10)];
+      } else {
+        normalizedCategory = body.category as CategoryKey;
+      }
+
+      if (!body.title || !body.content || !normalizedCategory || !validCategories.includes(normalizedCategory)) {
         return HttpResponse.json(
           { message: "必要な項目が不足しています" },
           { status: 400 },
@@ -358,7 +368,7 @@ export const handlers = [
         id: Date.now(),
         title: body.title,
         content: body.content,
-        category: body.category,
+        category: normalizedCategory as CategoryKey,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };

@@ -3,20 +3,17 @@ import { renderHook, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useBubbleGeneration } from "../useBubbleGeneration";
 
-// モック
-const mockSetTimeout = vi.fn();
-const mockClearTimeout = vi.fn();
-
 describe("useBubbleGeneration", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    global.setTimeout = mockSetTimeout;
-    global.clearTimeout = mockClearTimeout;
+    vi.spyOn(globalThis, "setTimeout");
+    vi.spyOn(globalThis, "clearTimeout");
   });
 
   afterEach(() => {
+    vi.clearAllTimers();
+    vi.restoreAllMocks();
     vi.useRealTimers();
-    vi.clearAllMocks();
   });
 
   it("techカテゴリの場合にバブルが生成される", () => {
