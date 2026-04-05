@@ -69,14 +69,20 @@ steps:
       - echo ""
       - echo "🌐 Health check..."
       - |
-        if wget -qO- http://localhost:8080/ | grep -q "<!DOCTYPE html>"; then
-          echo "✅ Health check passed (index.html served correctly)"
-        else
-          echo "❌ Health check failed (index.html not served)"
-          docker logs frontend-ci 2>&1 | tail -20
-          docker stop frontend-ci && docker rm frontend-ci
-          exit 1
-        fi
+        for i in $(seq 1 15); do
+          if wget -qO- http://localhost:8080/ | grep -q "<!DOCTYPE html>"; then
+            echo "✅ Health check passed (index.html served correctly)"
+            break
+          fi
+          if [ "$i" -eq 15 ]; then
+            echo "❌ Health check failed (index.html not served)"
+            docker logs frontend-ci 2>&1 | tail -20
+            docker stop frontend-ci && docker rm frontend-ci
+            exit 1
+          fi
+          echo "   Waiting for nginx to be ready... ($i/15)"
+          sleep 2
+        done
 
       - echo ""
       - echo "🔒 API fallback check..."
