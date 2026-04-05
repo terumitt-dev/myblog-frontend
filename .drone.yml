@@ -1,9 +1,9 @@
 # =========================
-# CI Pipeline (build & verify)
+# CI/CD Pipeline
 # =========================
 kind: pipeline
 type: docker
-name: ci
+name: ci-cd
 
 trigger:
   branch: [main, develop]
@@ -12,6 +12,15 @@ steps:
   - name: build-and-verify
     image: docker:24-dind
     privileged: true
+    environment:
+      AWS_REGION:
+        from_secret: AWS_REGION
+      AWS_ACCESS_KEY_ID:
+        from_secret: AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      ECR_REGISTRY:
+        from_secret: ECR_REGISTRY
     commands:
       - set -euo pipefail
       - echo "🐳 Starting Docker daemon..."
@@ -24,6 +33,7 @@ steps:
           if [ "$i" -eq 60 ]; then echo "❌ Docker daemon failed to start"; exit 1; fi
         done
 
+      # === CI: ビルド & 検証 ===
       - echo "🔨 Building Docker image..."
       - docker build -f app/Dockerfile.prod --build-arg VITE_API_BASE_URL=/api -t go-lilaregard-frontend:ci app/
       - echo "✅ Build succeeded"
@@ -59,7 +69,6 @@ steps:
       - echo ""
       - echo "🌐 Health check..."
       - |
-        HTTP_STATUS=$(wget -qO- -S http://localhost:8080/ 2>&1 | head -1)
         if wget -qO- http://localhost:8080/ | grep -q "<!DOCTYPE html>"; then
           echo "✅ Health check passed (index.html served correctly)"
         else
@@ -82,78 +91,27 @@ steps:
       - echo ""
       - echo "🧹 Cleanup..."
       - docker stop frontend-ci && docker rm frontend-ci
-      - echo ""
       - echo "✅ All CI checks passed"
 
----
-# =========================
-# CD Pipeline (ECR push)
-# =========================
-kind: pipeline
-type: docker
-name: cd
-
-trigger:
-  branch: [main]
-  event: [push]
-
-depends_on:
-  - ci
-
-steps:
-  - name: check-vars
-    image: alpine
-    environment:
-      AWS_REGION:
-        from_secret: AWS_REGION
-      AWS_ACCESS_KEY_ID:
-        from_secret: AWS_ACCESS_KEY_ID
-      AWS_SECRET_ACCESS_KEY:
-        from_secret: AWS_SECRET_ACCESS_KEY
-      ECR_REGISTRY:
-        from_secret: ECR_REGISTRY
-    commands:
-      - set -euo pipefail
-      - '[ -n "$AWS_REGION" ] || (echo "❌ AWS_REGION is not set" && exit 1)'
-      - '[ -n "$AWS_ACCESS_KEY_ID" ] || (echo "❌ AWS_ACCESS_KEY_ID is not set" && exit 1)'
-      - '[ -n "$AWS_SECRET_ACCESS_KEY" ] || (echo "❌ AWS_SECRET_ACCESS_KEY is not set" && exit 1)'
-      - '[ -n "$ECR_REGISTRY" ] || (echo "❌ ECR_REGISTRY is not set" && exit 1)'
-      - echo "✅ All required variables are set"
-
-  - name: build-and-push
-    image: docker:24-dind
-    privileged: true
-    environment:
-      AWS_REGION:
-        from_secret: AWS_REGION
-      AWS_ACCESS_KEY_ID:
-        from_secret: AWS_ACCESS_KEY_ID
-      AWS_SECRET_ACCESS_KEY:
-        from_secret: AWS_SECRET_ACCESS_KEY
-      ECR_REGISTRY:
-        from_secret: ECR_REGISTRY
-    commands:
-      - set -euo pipefail
-      - echo "🐳 Starting Docker daemon..."
-      - dockerd-entrypoint.sh &
+      # === CD: ECR push (mainブランチのみ) ===
       - |
-        for i in $(seq 1 60); do
-          if docker info >/dev/null 2>&1; then break; fi
-          echo "Waiting for Docker..."
-          sleep 1
-          if [ "$i" -eq 60 ]; then echo "❌ Docker daemon failed to start"; exit 1; fi
-        done
+        if [ "${DRONE_BRANCH}" = "main" ]; then
+          echo ""
+          echo "🔐 Logging in to ECR..."
+          apk add --no-cache aws-cli
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
 
-      - echo "🔐 Logging in to ECR..."
-      - apk add --no-cache aws-cli
-      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+          echo "🏷️ Tagging image for ECR..."
+          docker tag go-lilaregard-frontend:ci $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}
+          docker tag go-lilaregard-frontend:ci $ECR_REGISTRY/go-lilaregard-frontend:latest
 
-      - echo "🔨 Building Docker image..."
-      - docker build -f app/Dockerfile.prod --build-arg VITE_API_BASE_URL=/api -t $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA} -t $ECR_REGISTRY/go-lilaregard-frontend:latest app/
+          echo "🚀 Pushing to ECR..."
+          docker push $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}
+          docker push $ECR_REGISTRY/go-lilaregard-frontend:latest
 
-      - echo "🚀 Pushing to ECR..."
-      - docker push $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}
-      - docker push $ECR_REGISTRY/go-lilaregard-frontend:latest
-
-      - echo "✅ Image pushed successfully"
-      - echo "   → $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}"
+          echo "✅ Image pushed successfully"
+          echo "   → $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}"
+        else
+          echo ""
+          echo "⏭️ Skipping ECR push (branch: ${DRONE_BRANCH}, push only on main)"
+        fi
