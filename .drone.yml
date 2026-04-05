@@ -7,7 +7,6 @@ name: ci
 
 trigger:
   branch: [main, develop]
-  event: [push, pull_request]
 
 steps:
   - name: build-and-verify
@@ -96,7 +95,6 @@ name: cd
 
 trigger:
   branch: [main]
-  event: [push]
 
 depends_on:
   - ci
