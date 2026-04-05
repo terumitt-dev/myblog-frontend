@@ -71,7 +71,7 @@ steps:
       - |
         for i in $(seq 1 15); do
           RESPONSE=$(wget -qO- http://localhost:8080/ 2>/dev/null || true)
-          if echo "$RESPONSE" | grep -q "<!DOCTYPE html>"; then
+          if echo "$RESPONSE" | grep -qi "<!DOCTYPE html>"; then
             echo "✅ Health check passed (index.html served correctly)"
             break
           fi
