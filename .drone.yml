@@ -70,12 +70,14 @@ steps:
       - echo "🌐 Health check..."
       - |
         for i in $(seq 1 15); do
-          if wget -qO- http://localhost:8080/ | grep -q "<!DOCTYPE html>"; then
+          RESPONSE=$(wget -qO- http://localhost:8080/ 2>/dev/null || true)
+          if echo "$RESPONSE" | grep -q "<!DOCTYPE html>"; then
             echo "✅ Health check passed (index.html served correctly)"
             break
           fi
           if [ "$i" -eq 15 ]; then
             echo "❌ Health check failed (index.html not served)"
+            echo "   Response: $RESPONSE"
             docker logs frontend-ci 2>&1 | tail -20
             docker stop frontend-ci && docker rm frontend-ci
             exit 1
@@ -87,7 +89,7 @@ steps:
       - echo ""
       - echo "🔒 API fallback check..."
       - |
-        API_STATUS=$(wget -qS http://localhost:8080/api/ 2>&1 | grep "HTTP/" | awk '{print $2}' || echo "000")
+        API_STATUS=$(wget -qS http://localhost:8080/api/ 2>&1 | grep "HTTP/" | awk '{print $2}' || echo "000") || true
         if echo "$API_STATUS" | grep -q "404"; then
           echo "✅ /api/ correctly returns 404 (SPA fallback excluded)"
         else
