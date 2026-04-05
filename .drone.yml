@@ -101,7 +101,7 @@ steps:
 
       # === CD: ECR push (mainブランチのみ) ===
       - |
-        if [ "${DRONE_BRANCH}" = "main" ]; then
+        if [ "${DRONE_BUILD_EVENT}" = "push" ] && [ "${DRONE_BRANCH}" = "main" ]; then
           echo ""
           echo "🔐 Logging in to ECR..."
           apk add --no-cache aws-cli
