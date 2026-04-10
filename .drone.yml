@@ -102,6 +102,14 @@ steps:
       - docker stop frontend-ci && docker rm frontend-ci
       - echo "✅ All CI checks passed"
 
+      # === CI: ECR認証メカニズムの事前検証 ===
+      # Alpineのaws-cliが壊れたケースなど、CDで初めて発覚する問題を
+      # CI時点で検出するためamazon/aws-cliコンテナの起動だけ確認する
+      # （AWS認証情報は使わない）
+      - echo "🔍 Verifying ECR auth mechanism (no credentials needed)..."
+      - docker run --rm amazon/aws-cli:latest --version
+      - echo "✅ aws-cli image is operational"
+
       # === CD: ECR push (mainブランチのみ) ===
       - |
         if [ "${DRONE_BUILD_EVENT}" = "push" ] && [ "${DRONE_BRANCH}" = "main" ]; then
