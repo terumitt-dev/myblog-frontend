@@ -102,17 +102,28 @@ steps:
       - docker stop frontend-ci && docker rm frontend-ci
       - echo "✅ All CI checks passed"
 
+      # === CI: ECR認証メカニズムの事前検証 ===
+      # Alpineのaws-cliが壊れたケースなど、CDで初めて発覚する問題を
+      # CI時点で検出するためamazon/aws-cliコンテナの起動だけ確認する
+      # （AWS認証情報は使わない）
+      - echo "🔍 Verifying ECR auth mechanism (no credentials needed)..."
+      - docker run --rm amazon/aws-cli:latest --version
+      - echo "✅ aws-cli image is operational"
+
       # === CD: ECR push (mainブランチのみ) ===
       - |
         if [ "${DRONE_BUILD_EVENT}" = "push" ] && [ "${DRONE_BRANCH}" = "main" ]; then
           echo ""
           echo "🔐 Logging in to ECR..."
-          # libexpatのABI mismatch対策で先にexpatをアップグレード
-          # （pip経由でも同じpyexpat ABI問題で失敗するため）
-          apk update
-          apk upgrade --no-cache expat
-          apk add --no-cache aws-cli
-          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+          # Alpineのaws-cliパッケージはlibexpat ABI mismatchで壊れているため、
+          # DinD内でamazon/aws-cliコンテナを起動してECRトークンを取得する
+          ECR_TOKEN=$(docker run --rm \
+            -e AWS_REGION=$AWS_REGION \
+            -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+            -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+            amazon/aws-cli:latest \
+            ecr get-login-password --region $AWS_REGION)
+          echo "$ECR_TOKEN" | docker login --username AWS --password-stdin $ECR_REGISTRY
 
           echo "🏷️ Tagging image for ECR..."
           docker tag go-lilaregard-frontend:ci $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}
