@@ -107,10 +107,10 @@ steps:
         if [ "${DRONE_BUILD_EVENT}" = "push" ] && [ "${DRONE_BRANCH}" = "main" ]; then
           echo ""
           echo "🔐 Logging in to ECR..."
-          # Alpineのaws-cliパッケージはlibexpat ABI mismatchで壊れているため
-          # pip経由でインストールする
-          apk add --no-cache python3 py3-pip
-          pip3 install --break-system-packages awscli
+          # libexpatのABI mismatch対策で先にexpatをアップグレード
+          apk update
+          apk upgrade --no-cache expat
+          apk add --no-cache aws-cli
           aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
 
           echo "🏷️ Tagging image for ECR..."
