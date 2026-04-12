@@ -7,7 +7,6 @@ const Header = () => {
       className="flex justify-between items-center px-4 py-2"
       aria-label="サイトヘッダー"
     >
-      <h1 className="text-xl font-bold">My Blog</h1>
       <ThemeToggle />
     </header>
   );
