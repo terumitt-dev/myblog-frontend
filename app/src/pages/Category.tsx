@@ -317,8 +317,7 @@ const Category = () => {
   if (!category || !categoryConfig || !isValidCategory) {
     return (
       <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
-        <header className="absolute top-0 left-0 right-0 flex justify-between items-center px-4 py-2 z-10">
-          <h1 className="text-lg sm:text-xl lg:text-2xl font-bold">My Blog</h1>
+        <header className="absolute top-0 left-0 right-0 flex justify-end items-center px-4 py-2 z-10">
           <ThemeToggle />
         </header>
         <div className="text-center">
@@ -340,10 +339,7 @@ const Category = () => {
       style={{ backgroundColor: categoryConfig.backgroundColor }}
     >
       {/* Header */}
-      <header className="flex justify-between items-center px-4 py-2 relative z-20">
-        <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 dark:text-gray-200">
-          My Blog
-        </h1>
+      <header className="flex justify-end items-center px-4 py-2 relative z-20">
         <ThemeToggle />
       </header>
 

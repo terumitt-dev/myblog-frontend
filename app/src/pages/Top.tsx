@@ -79,11 +79,6 @@ const Top = () => {
   return (
     <Layout>
       <Container size="wide" padding="section" className="space-y-8">
-        {/* メインタイトル（スクリーンリーダー用） */}
-        <h1 id="page-title" className="sr-only">
-          My Blog - ホームページ
-        </h1>
-
         {/* ヒーロー画像 */}
         <section aria-label="ブログのメインビジュアル">
           <div className="w-full overflow-hidden rounded-xl">
