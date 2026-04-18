@@ -1,0 +1,169 @@
+// app/src/pages/PasswordResetRequest.tsx
+// パスワードリセット要求画面
+// 管理者は1人前提のため、Email入力ではなく SECRET 合言葉を入力して
+// 唯一の admin にリセットメールを送信する
+import Layout from "@/components/layouts/Layout";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import LoadingSpinner from "@/components/atoms/LoadingSpinner";
+import { cn } from "@/components/utils/cn";
+import { API_BASE } from "@/api/base";
+
+const PasswordResetRequest = () => {
+  const [secret, setSecret] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!secret.trim()) {
+      setError("合言葉を入力してください。");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${API_BASE}/auth/password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ secret: secret.trim() }),
+      });
+
+      if (response.status === 401) {
+        setError("合言葉が正しくありません。");
+        return;
+      }
+
+      if (!response.ok) {
+        setError("リセットメールの送信に失敗しました。");
+        return;
+      }
+
+      setSuccess(true);
+    } catch {
+      setError("通信エラーが発生しました。");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <Layout>
+        <div className="max-w-md mx-auto p-4 sm:p-6 lg:p-8 space-y-4">
+          <div className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <h2 className="text-lg font-semibold text-green-800 dark:text-green-300 mb-2">
+              リセットメールを送信しました
+            </h2>
+            <p className="text-sm text-green-700 dark:text-green-400">
+              管理者のメールアドレス宛にパスワードリセット用のリンクをお送りしました。
+              メール内のリンクから新しいパスワードを設定してください。
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+          >
+            ← ログイン画面に戻る
+          </button>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="max-w-md mx-auto p-4 sm:p-6 lg:p-8 space-y-4">
+        <div className="text-center mb-8">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+            パスワードリセット
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-2">
+            合言葉を入力すると、管理者のメールアドレスにリセット用リンクを送信します。
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label
+              htmlFor="secret"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              合言葉
+            </label>
+            <input
+              id="secret"
+              type="password"
+              required
+              value={secret}
+              onChange={(e) => setSecret(e.target.value)}
+              disabled={loading}
+              className={cn(
+                "w-full px-4 py-3 border rounded-lg",
+                "border-gray-300 dark:border-gray-600",
+                "bg-white dark:bg-gray-700",
+                "text-gray-900 dark:text-white",
+                "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+                "transition duration-200",
+              )}
+              placeholder="合言葉を入力してください"
+              autoComplete="off"
+            />
+          </div>
+
+          {error && (
+            <div
+              className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+              role="alert"
+            >
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading || !secret.trim()}
+            className={cn(
+              "w-full py-3 px-4 border border-transparent rounded-lg shadow-sm",
+              "text-sm font-medium text-white",
+              "bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600",
+              "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+              "transition duration-200 ease-in-out",
+            )}
+          >
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <LoadingSpinner size="sm" className="mr-2" />
+                送信中...
+              </div>
+            ) : (
+              "リセットメールを送信"
+            )}
+          </button>
+        </form>
+
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+          >
+            ← ログイン画面に戻る
+          </button>
+        </div>
+      </div>
+    </Layout>
+  );
+};
+
+export default PasswordResetRequest;

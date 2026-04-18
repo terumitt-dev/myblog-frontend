@@ -8,6 +8,8 @@ import PostDetail from "@/pages/PostDetail";
 import Admin from "@/pages/Admin";
 import Login from "@/pages/Login";
 import SignUp from "@/pages/SignUp";
+import PasswordResetRequest from "@/pages/PasswordResetRequest";
+import PasswordResetConfirm from "@/pages/PasswordResetConfirm";
 import { useAuth } from "@/hooks/useAuth";
 
 function AdminErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
@@ -68,6 +70,8 @@ const Router = () => {
       <Route path="/posts/:id" element={<PostDetail />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<SignUp />} />
+      <Route path="/password/reset" element={<PasswordResetRequest />} />
+      <Route path="/password/edit" element={<PasswordResetConfirm />} />
       <Route
         path="/admin"
         element={

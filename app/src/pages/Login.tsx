@@ -173,14 +173,25 @@ const Login = () => {
           </button>
         </form>
 
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-          >
-            ← ホームに戻る
-          </button>
+        <div className="text-center space-y-2">
+          <div>
+            <button
+              type="button"
+              onClick={() => navigate("/password/reset")}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+            >
+              パスワードをお忘れの方はこちら
+            </button>
+          </div>
+          <div>
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            >
+              ← ホームに戻る
+            </button>
+          </div>
         </div>
       </div>
     </Layout>
