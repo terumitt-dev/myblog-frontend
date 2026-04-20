@@ -8,19 +8,31 @@ import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import { cn } from "@/components/utils/cn";
 import { API_BASE } from "@/api/base";
 
+const TOKEN_STORAGE_KEY = "reset_password_token";
+
 const PasswordResetConfirm = () => {
   const [searchParams] = useSearchParams();
-  const [token] = useState(() => searchParams.get("reset_password_token") || "");
+  // URL → sessionStorage の順でトークンを取得
+  // URL に含まれていれば sessionStorage に退避してから URL 除去するため、
+  // リロードしても sessionStorage からトークンを復元できる
+  const [token] = useState(() => {
+    const tokenFromUrl = searchParams.get(TOKEN_STORAGE_KEY);
+    if (tokenFromUrl) {
+      sessionStorage.setItem(TOKEN_STORAGE_KEY, tokenFromUrl);
+      return tokenFromUrl;
+    }
+    return sessionStorage.getItem(TOKEN_STORAGE_KEY) || "";
+  });
 
   // マウント後にURLからトークンを除去（ブラウザ履歴・Referer経由での漏洩を防止）
   useEffect(() => {
-    if (!token) return;
+    if (!searchParams.get(TOKEN_STORAGE_KEY)) return;
     window.history.replaceState(
       {},
       document.title,
       `${window.location.pathname}${window.location.hash}`,
     );
-  }, [token]);
+  }, [searchParams]);
 
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -67,6 +79,8 @@ const PasswordResetConfirm = () => {
         return;
       }
 
+      // 成功後は sessionStorage のトークンを破棄（再利用防止）
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
       setSuccess(true);
     } catch {
       setError("通信エラーが発生しました。");
