@@ -3,7 +3,7 @@
 // URLクエリ ?reset_password_token=... を受け取り、新パスワードを設定する
 import Layout from "@/components/layouts/Layout";
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import { cn } from "@/components/utils/cn";
 import { API_BASE } from "@/api/base";
@@ -17,15 +17,9 @@ const PasswordResetConfirm = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!token) {
-      setError("リセットトークンが無効です。メール内のリンクから再度アクセスしてください。");
-      return;
-    }
 
     if (password.length < 6) {
       setError("パスワードは6文字以上で入力してください。");
@@ -70,6 +64,38 @@ const PasswordResetConfirm = () => {
     }
   };
 
+  // トークンがない場合はフォームを表示せず、早期リターン
+  if (!token) {
+    return (
+      <Layout>
+        <div className="max-w-md mx-auto p-4 sm:p-6 lg:p-8 space-y-4">
+          <div
+            className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+            role="alert"
+          >
+            <h2 className="text-lg font-semibold text-red-800 dark:text-red-300 mb-2">
+              リセットトークンが無効です
+            </h2>
+            <p className="text-sm text-red-700 dark:text-red-400">
+              メール内のリンクから再度アクセスしてください。
+            </p>
+          </div>
+          <Link
+            to="/password/reset"
+            className={cn(
+              "block text-center py-3 px-4 border border-transparent rounded-lg shadow-sm",
+              "text-sm font-medium text-white",
+              "bg-blue-600 hover:bg-blue-700",
+              "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
+            )}
+          >
+            パスワードリセットを再申請する
+          </Link>
+        </div>
+      </Layout>
+    );
+  }
+
   if (success) {
     return (
       <Layout>
@@ -82,18 +108,17 @@ const PasswordResetConfirm = () => {
               新しいパスワードでログインしてください。
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => navigate("/login")}
+          <Link
+            to="/login"
             className={cn(
-              "w-full py-3 px-4 border border-transparent rounded-lg shadow-sm",
+              "block text-center py-3 px-4 border border-transparent rounded-lg shadow-sm",
               "text-sm font-medium text-white",
               "bg-blue-600 hover:bg-blue-700",
               "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
             )}
           >
             ログイン画面へ
-          </button>
+          </Link>
         </div>
       </Layout>
     );
@@ -201,6 +226,15 @@ const PasswordResetConfirm = () => {
             )}
           </button>
         </form>
+
+        <div className="text-center">
+          <Link
+            to="/login"
+            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+          >
+            ← ログイン画面に戻る
+          </Link>
+        </div>
       </div>
     </Layout>
   );
