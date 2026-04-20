@@ -12,26 +12,24 @@ const TOKEN_STORAGE_KEY = "reset_password_token";
 
 const PasswordResetConfirm = () => {
   const [searchParams] = useSearchParams();
-  // URL → sessionStorage の順でトークンを取得
-  // URL に含まれていれば sessionStorage に退避してから URL 除去するため、
-  // リロードしても sessionStorage からトークンを復元できる
-  const [token] = useState(() => {
+  const [token, setToken] = useState("");
+
+  // URL → sessionStorage の順でトークンを同期し、URL上のトークンは即座に除去する
+  // マウント中に searchParams が変化しても（同じ画面で別リンクを踏んだ場合など）、
+  // useEffect で追従してトークンを更新できる
+  useEffect(() => {
     const tokenFromUrl = searchParams.get(TOKEN_STORAGE_KEY);
     if (tokenFromUrl) {
       sessionStorage.setItem(TOKEN_STORAGE_KEY, tokenFromUrl);
-      return tokenFromUrl;
+      setToken(tokenFromUrl);
+      window.history.replaceState(
+        {},
+        document.title,
+        `${window.location.pathname}${window.location.hash}`,
+      );
+      return;
     }
-    return sessionStorage.getItem(TOKEN_STORAGE_KEY) || "";
-  });
-
-  // マウント後にURLからトークンを除去（ブラウザ履歴・Referer経由での漏洩を防止）
-  useEffect(() => {
-    if (!searchParams.get(TOKEN_STORAGE_KEY)) return;
-    window.history.replaceState(
-      {},
-      document.title,
-      `${window.location.pathname}${window.location.hash}`,
-    );
+    setToken(sessionStorage.getItem(TOKEN_STORAGE_KEY) || "");
   }, [searchParams]);
 
   const [password, setPassword] = useState("");
@@ -75,6 +73,11 @@ const PasswordResetConfirm = () => {
         const errors = Array.isArray(data.errors)
           ? data.errors.join(", ")
           : "パスワードの更新に失敗しました。リンクの有効期限切れの可能性があります。";
+        // トークン失効系のエラー時は sessionStorage からも破棄し、
+        // 再リロードでも壊れた状態から復帰できるようにする
+        if ([401, 404, 422].includes(response.status)) {
+          sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+        }
         setError(errors);
         return;
       }
