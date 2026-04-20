@@ -2,7 +2,7 @@
 // メール内リンクから遷移する新パスワード設定画面
 // URLクエリ ?reset_password_token=... を受け取り、新パスワードを設定する
 import Layout from "@/components/layouts/Layout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import { cn } from "@/components/utils/cn";
@@ -10,15 +10,17 @@ import { API_BASE } from "@/api/base";
 
 const PasswordResetConfirm = () => {
   const [searchParams] = useSearchParams();
-  // トークンは初回マウント時に1度だけ取得し、直後にURLから除去する
-  // （ブラウザ履歴・Referer経由での漏洩を防止）
-  const [token] = useState(() => {
-    const value = searchParams.get("reset_password_token") || "";
-    if (value) {
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-    return value;
-  });
+  const [token] = useState(() => searchParams.get("reset_password_token") || "");
+
+  // マウント後にURLからトークンを除去（ブラウザ履歴・Referer経由での漏洩を防止）
+  useEffect(() => {
+    if (!token) return;
+    window.history.replaceState(
+      {},
+      document.title,
+      `${window.location.pathname}${window.location.hash}`,
+    );
+  }, [token]);
 
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
