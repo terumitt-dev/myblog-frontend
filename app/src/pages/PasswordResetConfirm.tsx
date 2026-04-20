@@ -29,7 +29,8 @@ const PasswordResetConfirm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (password.length < 6) {
+    // 空白のみの入力を弾くため trim 後に長さを検証
+    if (password.trim().length < 6) {
       setError("パスワードは6文字以上で入力してください。");
       return;
     }
