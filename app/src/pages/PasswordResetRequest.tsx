@@ -36,10 +36,10 @@ const PasswordResetRequest = () => {
         body: JSON.stringify({ secret: secret.trim() }),
       });
 
-      // 合言葉の正誤（401）を露出すると検証オラクルになるため、
-      // 成功時も認証失敗時も同じ画面を表示する。
+      // Backend は合言葉の正誤に関わらず常に 202 Accepted を返すため、
+      // 2xx 系をそのまま成功扱いする。
       // 正規ユーザーが合言葉を間違えた場合は「メールが届かない」ことで気付ける。
-      if (response.ok || response.status === 401) {
+      if (response.ok) {
         setSuccess(true);
         return;
       }
