@@ -36,17 +36,15 @@ const PasswordResetRequest = () => {
         body: JSON.stringify({ secret: secret.trim() }),
       });
 
-      if (response.status === 401) {
-        setError("合言葉が正しくありません。");
+      // 合言葉の正誤（401）を露出すると検証オラクルになるため、
+      // 成功時も認証失敗時も同じ画面を表示する。
+      // 正規ユーザーが合言葉を間違えた場合は「メールが届かない」ことで気付ける。
+      if (response.ok || response.status === 401) {
+        setSuccess(true);
         return;
       }
 
-      if (!response.ok) {
-        setError("リセットメールの送信に失敗しました。");
-        return;
-      }
-
-      setSuccess(true);
+      setError("リセットメールの送信に失敗しました。しばらくしてから再度お試しください。");
     } catch {
       setError("通信エラーが発生しました。");
     } finally {
@@ -60,11 +58,14 @@ const PasswordResetRequest = () => {
         <div className="max-w-md mx-auto p-4 sm:p-6 lg:p-8 space-y-4">
           <div className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
             <h2 className="text-lg font-semibold text-green-800 dark:text-green-300 mb-2">
-              リセットメールを送信しました
+              リセット申請を受け付けました
             </h2>
             <p className="text-sm text-green-700 dark:text-green-400">
               管理者のメールアドレス宛にパスワードリセット用のリンクをお送りしました。
               メール内のリンクから新しいパスワードを設定してください。
+            </p>
+            <p className="text-xs text-green-700 dark:text-green-400 mt-3">
+              数分経ってもメールが届かない場合は、合言葉をご確認の上、再度お試しください。
             </p>
           </div>
           <button

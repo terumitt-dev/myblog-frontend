@@ -10,7 +10,15 @@ import { API_BASE } from "@/api/base";
 
 const PasswordResetConfirm = () => {
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("reset_password_token") || "";
+  // トークンは初回マウント時に1度だけ取得し、直後にURLから除去する
+  // （ブラウザ履歴・Referer経由での漏洩を防止）
+  const [token] = useState(() => {
+    const value = searchParams.get("reset_password_token") || "";
+    if (value) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    return value;
+  });
 
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
