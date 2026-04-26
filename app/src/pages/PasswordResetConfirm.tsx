@@ -91,14 +91,26 @@ const PasswordResetConfirm = () => {
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        const errors = Array.isArray(data.errors)
-          ? data.errors.join(", ")
-          : "パスワードの更新に失敗しました。リンクの有効期限切れの可能性があります。";
-        // トークン失効系のエラー（401/404）時は sessionStorage からも破棄し、
-        // 再リロードでも壊れた状態から復帰できるようにする。
-        // 422 はパスワード強度などの通常バリデーション失敗にも使われるため除外し、
-        // 正しいリンクで再入力できるようにする。
-        if ([401, 404].includes(response.status)) {
+        const apiErrors = Array.isArray(data.errors) ? data.errors : [];
+        const errorMessage =
+          apiErrors.length > 0
+            ? apiErrors.join(", ")
+            : "パスワードの更新に失敗しました。リンクの有効期限切れの可能性があります。";
+
+        // トークン失効系の検知:
+        //   1. 既知の失効ステータスコード (現 backend は 401 のみ。400/404/410 は将来の
+        //      backend 変更や別ルート経由のレスポンスへの defense-in-depth として広めに見る)
+        //   2. errors 配列の文言にトークン関連キーワードが含まれる場合 (ja/en 両対応)
+        //      → 422 でも token 起因のエラーが返る backend に切り替わった場合に救う。
+        //      パスワードバリデーション失敗 (Password is too short 等) は引っかからないため
+        //      正しいトークンでの再入力フローは維持される。
+        const hasTokenError =
+          [400, 401, 404, 410].includes(response.status) ||
+          apiErrors.some((msg) =>
+            /token|トークン|期限|expired|invalid/i.test(String(msg)),
+          );
+
+        if (hasTokenError) {
           try {
             sessionStorage.removeItem(TOKEN_STORAGE_KEY);
           } catch {
@@ -106,7 +118,7 @@ const PasswordResetConfirm = () => {
           }
           setToken("");
         }
-        setError(errors);
+        setError(errorMessage);
         return;
       }
 
