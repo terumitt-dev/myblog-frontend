@@ -39,8 +39,11 @@ const PasswordResetConfirm = () => {
         // クエリ・フラグメント両方を URL から除去する。
         // 第1引数は React Router の location.state を巻き込まないように
         // 既存の history.state を保持する（{} に置換すると遷移情報が失われる）。
+        // 同時に resetPasswordTokenLoaded フラグを history.state に記録することで、
+        // 「URL を浄化した直後の遷移」だけ sessionStorage の token 再利用を許可する
+        // （URL に token が無い別訪問で古い token を誤って拾うのを防ぐ）。
         window.history.replaceState(
-          window.history.state,
+          { ...(window.history.state ?? {}), resetPasswordTokenLoaded: true },
           document.title,
           window.location.pathname,
         );
@@ -49,8 +52,20 @@ const PasswordResetConfirm = () => {
       }
       return;
     }
+    // URL に token が無いときの sessionStorage 再利用は、直前に URL から
+    // 取り込んで replaceState した場合 (resetPasswordTokenLoaded フラグ) に限定する。
+    // それ以外では古い token の誤用を防ぐため明示的に破棄する。
     try {
-      setToken(sessionStorage.getItem(TOKEN_STORAGE_KEY) || "");
+      const canReuseStoredToken =
+        window.history.state?.resetPasswordTokenLoaded === true;
+      if (!canReuseStoredToken) {
+        sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+      }
+      setToken(
+        canReuseStoredToken
+          ? sessionStorage.getItem(TOKEN_STORAGE_KEY) || ""
+          : "",
+      );
     } catch {
       setToken("");
     }
@@ -62,13 +77,15 @@ const PasswordResetConfirm = () => {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // setLoading が反映される前に連続クリックされると、同じワンタイムトークンで
-    // PATCH が複数回飛んで失効レースが起こる。ボタン disabled に加えて
-    // ハンドラ先頭でも明示的に多重送信をブロック。
-    if (loading) {
+    // setLoading の反映前に連続クリックされた場合の多重送信は React state では
+    // 防げない (state 更新は次のレンダーで反映)。DOM 直の form.dataset を
+    // 同期フラグとして使うことで、同一レンダー内の二重 PATCH を確実に遮断する。
+    // ワンタイムトークンの失効レース防止のため必須。
+    const form = e.currentTarget;
+    if (form.dataset.submitting === "true") {
       return;
     }
 
@@ -83,6 +100,7 @@ const PasswordResetConfirm = () => {
       return;
     }
 
+    form.dataset.submitting = "true";
     setLoading(true);
     setError("");
 
@@ -153,6 +171,8 @@ const PasswordResetConfirm = () => {
     } catch {
       setError("通信エラーが発生しました。");
     } finally {
+      // 同期フラグを解除して再送信を可能にする
+      form.dataset.submitting = "false";
       setLoading(false);
     }
   };

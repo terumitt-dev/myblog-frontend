@@ -15,11 +15,14 @@ const PasswordResetRequest = () => {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // setLoading が反映される前の連続クリックによる多重送信を防止する
-    if (loading) {
+    // setLoading の反映前に連続クリックされた場合の多重送信は React state では
+    // 防げない (state 更新は次のレンダーで反映)。DOM 直の form.dataset を
+    // 同期フラグとして使うことで、同一レンダー内の二重 POST を確実に遮断する。
+    const form = e.currentTarget;
+    if (form.dataset.submitting === "true") {
       return;
     }
 
@@ -28,6 +31,7 @@ const PasswordResetRequest = () => {
       return;
     }
 
+    form.dataset.submitting = "true";
     setLoading(true);
     setError("");
 
@@ -52,6 +56,8 @@ const PasswordResetRequest = () => {
     } catch {
       setError("通信エラーが発生しました。");
     } finally {
+      // 同期フラグを解除して再送信を可能にする
+      form.dataset.submitting = "false";
       setLoading(false);
     }
   };
