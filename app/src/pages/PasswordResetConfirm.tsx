@@ -106,7 +106,7 @@ const PasswordResetConfirm = () => {
         //      正しいトークンでの再入力フローは維持される。
         const hasTokenError =
           [400, 401, 404, 410].includes(response.status) ||
-          apiErrors.some((msg) =>
+          apiErrors.some((msg: unknown) =>
             /token|トークン|期限|expired|invalid/i.test(String(msg)),
           );
 
