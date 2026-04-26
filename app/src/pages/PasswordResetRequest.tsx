@@ -18,6 +18,11 @@ const PasswordResetRequest = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // setLoading が反映される前の連続クリックによる多重送信を防止する
+    if (loading) {
+      return;
+    }
+
     if (!secret.trim()) {
       setError("合言葉を入力してください。");
       return;

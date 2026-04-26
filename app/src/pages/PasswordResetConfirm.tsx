@@ -94,10 +94,16 @@ const PasswordResetConfirm = () => {
         const errors = Array.isArray(data.errors)
           ? data.errors.join(", ")
           : "パスワードの更新に失敗しました。リンクの有効期限切れの可能性があります。";
-        // トークン失効系のエラー時は sessionStorage からも破棄し、
-        // 再リロードでも壊れた状態から復帰できるようにする
-        if ([401, 404, 422].includes(response.status)) {
-          sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+        // トークン失効系のエラー（401/404）時は sessionStorage からも破棄し、
+        // 再リロードでも壊れた状態から復帰できるようにする。
+        // 422 はパスワード強度などの通常バリデーション失敗にも使われるため除外し、
+        // 正しいリンクで再入力できるようにする。
+        if ([401, 404].includes(response.status)) {
+          try {
+            sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+          } catch {
+            // ストレージ制限下でもエラー表示は継続する
+          }
           setToken("");
         }
         setError(errors);
@@ -105,7 +111,12 @@ const PasswordResetConfirm = () => {
       }
 
       // 成功後は sessionStorage のトークンを破棄（再利用防止）
-      sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+      // ストレージ制限下で例外が出ても、更新成功画面は表示する
+      try {
+        sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+      } catch {
+        // no-op
+      }
       setSuccess(true);
     } catch {
       setError("通信エラーが発生しました。");
