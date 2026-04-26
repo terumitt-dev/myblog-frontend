@@ -12,7 +12,9 @@ const TOKEN_STORAGE_KEY = "reset_password_token";
 
 const PasswordResetConfirm = () => {
   const [searchParams] = useSearchParams();
-  const [token, setToken] = useState("");
+  // null は useEffect 実行前の「未確定」状態を表す。"" にすると初回レンダーで
+  // `if (!token)` 分岐に入って一瞬「無効トークン」画面がフラッシュするのを避けるため。
+  const [token, setToken] = useState<string | null>(null);
 
   // URL → sessionStorage の順でトークンを同期し、URL上のトークンは即座に除去する
   // マウント中に searchParams が変化しても（同じ画面で別リンクを踏んだ場合など）、
@@ -92,6 +94,11 @@ const PasswordResetConfirm = () => {
       setLoading(false);
     }
   };
+
+  // useEffect 実行前は何も描画しない（フラッシュ回避）
+  if (token === null) {
+    return null;
+  }
 
   // トークンがない場合はフォームを表示せず、早期リターン
   if (!token) {

@@ -4,7 +4,7 @@
 // 唯一の admin にリセットメールを送信する
 import Layout from "@/components/layouts/Layout";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import { cn } from "@/components/utils/cn";
 import { API_BASE } from "@/api/base";
@@ -14,7 +14,6 @@ const PasswordResetRequest = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,13 +67,12 @@ const PasswordResetRequest = () => {
               数分経ってもメールが届かない場合は、合言葉をご確認の上、再度お試しください。
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => navigate("/login")}
+          <Link
+            to="/login"
             className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
           >
             ← ログイン画面に戻る
-          </button>
+          </Link>
         </div>
       </Layout>
     );
@@ -154,13 +152,12 @@ const PasswordResetRequest = () => {
         </form>
 
         <div className="text-center">
-          <button
-            type="button"
-            onClick={() => navigate("/login")}
+          <Link
+            to="/login"
             className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
           >
             ← ログイン画面に戻る
-          </button>
+          </Link>
         </div>
       </div>
     </Layout>
