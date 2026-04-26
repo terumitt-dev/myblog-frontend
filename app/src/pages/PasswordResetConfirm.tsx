@@ -22,16 +22,28 @@ const PasswordResetConfirm = () => {
   useEffect(() => {
     const tokenFromUrl = searchParams.get(TOKEN_STORAGE_KEY);
     if (tokenFromUrl) {
-      sessionStorage.setItem(TOKEN_STORAGE_KEY, tokenFromUrl);
       setToken(tokenFromUrl);
-      window.history.replaceState(
-        {},
-        document.title,
-        `${window.location.pathname}${window.location.hash}`,
-      );
+      // sessionStorage はプライベートブラウズや厳しいストレージ制限下で例外を投げ得る。
+      // 失敗してもメイン処理は継続させ、URL からトークンが消えるだけの状態は避ける。
+      try {
+        sessionStorage.setItem(TOKEN_STORAGE_KEY, tokenFromUrl);
+        // 第1引数は React Router の location.state を巻き込まないように
+        // 既存の history.state を保持する（{} に置換すると遷移情報が失われる）
+        window.history.replaceState(
+          window.history.state,
+          document.title,
+          `${window.location.pathname}${window.location.hash}`,
+        );
+      } catch {
+        // sessionStorage / history が使えない環境では URL を残してトークンを保持する
+      }
       return;
     }
-    setToken(sessionStorage.getItem(TOKEN_STORAGE_KEY) || "");
+    try {
+      setToken(sessionStorage.getItem(TOKEN_STORAGE_KEY) || "");
+    } catch {
+      setToken("");
+    }
   }, [searchParams]);
 
   const [password, setPassword] = useState("");
@@ -42,6 +54,13 @@ const PasswordResetConfirm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // setLoading が反映される前に連続クリックされると、同じワンタイムトークンで
+    // PATCH が複数回飛んで失効レースが起こる。ボタン disabled に加えて
+    // ハンドラ先頭でも明示的に多重送信をブロック。
+    if (loading) {
+      return;
+    }
 
     // 空白のみの入力を弾くため trim 後に長さを検証
     if (password.trim().length < 6) {
