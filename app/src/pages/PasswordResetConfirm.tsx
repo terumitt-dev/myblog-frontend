@@ -77,6 +77,7 @@ const PasswordResetConfirm = () => {
         // 再リロードでも壊れた状態から復帰できるようにする
         if ([401, 404, 422].includes(response.status)) {
           sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+          setToken("");
         }
         setError(errors);
         return;
