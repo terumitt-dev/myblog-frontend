@@ -3,7 +3,7 @@
 // URLクエリ ?reset_password_token=... を受け取り、新パスワードを設定する
 import Layout from "@/components/layouts/Layout";
 import { useState, useEffect } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, useLocation, Link } from "react-router-dom";
 import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import { cn } from "@/components/utils/cn";
 import { API_BASE } from "@/api/base";
@@ -12,18 +12,20 @@ const TOKEN_STORAGE_KEY = "reset_password_token";
 
 const PasswordResetConfirm = () => {
   const [searchParams] = useSearchParams();
+  // hash 変更にも追従するため React Router の location を依存に含める。
+  // window.location.hash 直読みだと React に変更通知されず再 sync しないケースがある。
+  const location = useLocation();
   // null は useEffect 実行前の「未確定」状態を表す。"" にすると初回レンダーで
   // `if (!token)` 分岐に入って一瞬「無効トークン」画面がフラッシュするのを避けるため。
   const [token, setToken] = useState<string | null>(null);
 
   // URL → sessionStorage の順でトークンを同期し、URL上のトークンは即座に除去する
-  // マウント中に searchParams が変化しても（同じ画面で別リンクを踏んだ場合など）、
-  // useEffect で追従してトークンを更新できる
+  // マウント中に searchParams または hash が変化したときも追従する
   useEffect(() => {
     // backend のメールリンクはフラグメント (#reset_password_token=...) ベース。
     // クエリ文字列 (?reset_password_token=...) も後方互換のためフォールバック。
     // フラグメントを優先することで、サーバログ・Referer 経由の漏えいを最小化。
-    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const hashParams = new URLSearchParams(location.hash.slice(1));
     const tokenFromHash = hashParams.get(TOKEN_STORAGE_KEY);
     const tokenFromQuery = searchParams.get(TOKEN_STORAGE_KEY);
     const tokenFromUrl = tokenFromHash || tokenFromQuery;
@@ -52,7 +54,7 @@ const PasswordResetConfirm = () => {
     } catch {
       setToken("");
     }
-  }, [searchParams]);
+  }, [searchParams, location.hash]);
 
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -108,15 +110,22 @@ const PasswordResetConfirm = () => {
         // トークン失効系の検知:
         //   1. 既知の失効ステータスコード (現 backend は 401 のみ。400/404/410 は将来の
         //      backend 変更や別ルート経由のレスポンスへの defense-in-depth として広めに見る)
-        //   2. errors 配列の文言にトークン関連キーワードが含まれる場合 (ja/en 両対応)
-        //      → 422 でも token 起因のエラーが返る backend に切り替わった場合に救う。
-        //      パスワードバリデーション失敗 (Password is too short 等) は引っかからないため
-        //      正しいトークンでの再入力フローは維持される。
+        //   2. errors 配列の文言が明確に reset_password_token に紐づく場合のみ
+        //      → 「Password confirmation is invalid」のような通常のバリデーション失敗で
+        //         誤って token を破棄しないよう、文言マッチは reset_password_token 関連に限定。
         const hasTokenError =
           [400, 401, 404, 410].includes(response.status) ||
-          apiErrors.some((msg: unknown) =>
-            /token|トークン|期限|expired|invalid/i.test(String(msg)),
-          );
+          apiErrors.some((msg: unknown) => {
+            const normalized = String(msg).toLowerCase();
+            return (
+              normalized.includes("reset_password_token") ||
+              normalized.includes("reset password token") ||
+              normalized.includes("expired token") ||
+              normalized.includes("リセットパスワードトークン") ||
+              normalized.includes("リセット用トークン") ||
+              normalized.includes("期限切れ")
+            );
+          });
 
         if (hasTokenError) {
           try {
