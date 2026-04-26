@@ -20,19 +20,27 @@ const PasswordResetConfirm = () => {
   // マウント中に searchParams が変化しても（同じ画面で別リンクを踏んだ場合など）、
   // useEffect で追従してトークンを更新できる
   useEffect(() => {
-    const tokenFromUrl = searchParams.get(TOKEN_STORAGE_KEY);
+    // backend のメールリンクはフラグメント (#reset_password_token=...) ベース。
+    // クエリ文字列 (?reset_password_token=...) も後方互換のためフォールバック。
+    // フラグメントを優先することで、サーバログ・Referer 経由の漏えいを最小化。
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const tokenFromHash = hashParams.get(TOKEN_STORAGE_KEY);
+    const tokenFromQuery = searchParams.get(TOKEN_STORAGE_KEY);
+    const tokenFromUrl = tokenFromHash || tokenFromQuery;
+
     if (tokenFromUrl) {
       setToken(tokenFromUrl);
       // sessionStorage はプライベートブラウズや厳しいストレージ制限下で例外を投げ得る。
       // 失敗してもメイン処理は継続させ、URL からトークンが消えるだけの状態は避ける。
       try {
         sessionStorage.setItem(TOKEN_STORAGE_KEY, tokenFromUrl);
+        // クエリ・フラグメント両方を URL から除去する。
         // 第1引数は React Router の location.state を巻き込まないように
-        // 既存の history.state を保持する（{} に置換すると遷移情報が失われる）
+        // 既存の history.state を保持する（{} に置換すると遷移情報が失われる）。
         window.history.replaceState(
           window.history.state,
           document.title,
-          `${window.location.pathname}${window.location.hash}`,
+          window.location.pathname,
         );
       } catch {
         // sessionStorage / history が使えない環境では URL を残してトークンを保持する
