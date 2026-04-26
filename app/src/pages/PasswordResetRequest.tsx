@@ -65,7 +65,8 @@ const PasswordResetRequest = () => {
               リセット申請を受け付けました
             </h2>
             <p className="text-sm text-green-700 dark:text-green-400">
-              管理者のメールアドレス宛にパスワードリセット用のリンクをお送りしました。
+              リセット申請を受け付けました。
+              合言葉が正しい場合は、管理者のメールアドレス宛にパスワードリセット用のリンクが送信されます。
               メール内のリンクから新しいパスワードを設定してください。
             </p>
             <p className="text-xs text-green-700 dark:text-green-400 mt-3">

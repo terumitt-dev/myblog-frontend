@@ -108,22 +108,25 @@ const PasswordResetConfirm = () => {
             : "パスワードの更新に失敗しました。リンクの有効期限切れの可能性があります。";
 
         // トークン失効系の検知:
-        //   1. 既知の失効ステータスコード (現 backend は 401 のみ。400/404/410 は将来の
-        //      backend 変更や別ルート経由のレスポンスへの defense-in-depth として広めに見る)
+        //   1. 失効を意図する明確なステータスコード (401 = 未認証 / 410 = リソース消滅)
+        //      400/404 は通常のリクエスト形式エラーやルート問題でも返るため、
+        //      無条件で token 破棄すると正規ユーザーが復旧できなくなる
         //   2. errors 配列の文言が明確に reset_password_token に紐づく場合のみ
         //      → 「Password confirmation is invalid」のような通常のバリデーション失敗で
         //         誤って token を破棄しないよう、文言マッチは reset_password_token 関連に限定。
         const hasTokenError =
-          [400, 401, 404, 410].includes(response.status) ||
+          [401, 410].includes(response.status) ||
           apiErrors.some((msg: unknown) => {
             const normalized = String(msg).toLowerCase();
             return (
               normalized.includes("reset_password_token") ||
               normalized.includes("reset password token") ||
               normalized.includes("expired token") ||
+              normalized.includes("invalid token") ||
               normalized.includes("リセットパスワードトークン") ||
               normalized.includes("リセット用トークン") ||
-              normalized.includes("期限切れ")
+              normalized.includes("期限切れ") ||
+              normalized.includes("無効なトークン")
             );
           });
 
