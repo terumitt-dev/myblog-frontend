@@ -25,9 +25,18 @@ const PasswordResetConfirm = () => {
     // backend のメールリンクはフラグメント (#reset_password_token=...) ベース。
     // クエリ文字列 (?reset_password_token=...) も後方互換のためフォールバック。
     // フラグメントを優先することで、サーバログ・Referer 経由の漏えいを最小化。
+    //
+    // URLSearchParams は HTML form encoding 仕様に従って "+" を空白として
+    // デコードする。Devise の reset_password_token は base64 系で "+" を含むことが
+    // あり、そのままだと壊れるため空白を "+" に戻して正規化する。
+    // (backend が ERB::Util.url_encode で %2B にしている場合は影響しないが、
+    //  defense-in-depth として常に補正する)
+    const normalizeToken = (value: string | null) =>
+      value ? value.replace(/ /g, "+") : null;
+
     const hashParams = new URLSearchParams(location.hash.slice(1));
-    const tokenFromHash = hashParams.get(TOKEN_STORAGE_KEY);
-    const tokenFromQuery = searchParams.get(TOKEN_STORAGE_KEY);
+    const tokenFromHash = normalizeToken(hashParams.get(TOKEN_STORAGE_KEY));
+    const tokenFromQuery = normalizeToken(searchParams.get(TOKEN_STORAGE_KEY));
     const tokenFromUrl = tokenFromHash || tokenFromQuery;
 
     if (tokenFromUrl) {
