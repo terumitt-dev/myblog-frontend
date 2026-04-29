@@ -45,7 +45,16 @@ const PasswordResetConfirm = () => {
       // 失敗してもメイン処理は継続させ、URL からトークンが消えるだけの状態は避ける。
       try {
         sessionStorage.setItem(TOKEN_STORAGE_KEY, tokenFromUrl);
-        // クエリ・フラグメント両方を URL から除去する。
+        // reset_password_token のみを URL から外科的に除去する。
+        // pathname だけに置き換えると、将来この画面に他のクエリ/ハッシュが
+        // 付いたときにそれらまで巻き込んで消えてしまうため。
+        const cleanedUrl = new URL(window.location.href);
+        cleanedUrl.searchParams.delete(TOKEN_STORAGE_KEY);
+        const remainingHash = new URLSearchParams(cleanedUrl.hash.slice(1));
+        remainingHash.delete(TOKEN_STORAGE_KEY);
+        const hashString = remainingHash.toString();
+        const nextUrl = `${cleanedUrl.pathname}${cleanedUrl.search}${hashString ? `#${hashString}` : ""}`;
+
         // 第1引数は React Router の location.state を巻き込まないように
         // 既存の history.state を保持する（{} に置換すると遷移情報が失われる）。
         // 同時に resetPasswordTokenLoaded フラグを history.state に記録することで、
@@ -54,7 +63,7 @@ const PasswordResetConfirm = () => {
         window.history.replaceState(
           { ...(window.history.state ?? {}), resetPasswordTokenLoaded: true },
           document.title,
-          window.location.pathname,
+          nextUrl,
         );
       } catch {
         // sessionStorage / history が使えない環境では URL を残してトークンを保持する
@@ -98,8 +107,16 @@ const PasswordResetConfirm = () => {
       return;
     }
 
-    // 空白のみの入力を弾くため trim 後に長さを検証
-    if (password.trim().length < 6) {
+    // 検証は実際に送信する password そのものに対して行う。
+    // 以前は trim().length で検証してたが、送信値は trim 前の生の password なので
+    // 検証基準と送信値がズレていた（例: "      hello1" は trim 後 6文字で通って
+    // 12文字のまま送られる）。
+    // 空白のみの入力は別条件で弾く。
+    if (password.trim().length === 0) {
+      setError("パスワードを入力してください。");
+      return;
+    }
+    if (password.length < 6) {
       setError("パスワードは6文字以上で入力してください。");
       return;
     }
