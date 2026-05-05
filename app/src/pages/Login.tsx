@@ -1,7 +1,7 @@
 // app/src/pages/Login.tsx
 import Layout from "@/components/layouts/Layout";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import { cn } from "@/components/utils/cn";
@@ -14,7 +14,9 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
     if (!email.trim() || !password.trim()) {
       setError("メールアドレスとパスワードを入力してください。");
       return;
@@ -33,11 +35,6 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    handleSubmit();
   };
 
   return (
@@ -62,7 +59,7 @@ const Login = () => {
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label
               htmlFor="email"
@@ -173,14 +170,23 @@ const Login = () => {
           </button>
         </form>
 
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-          >
-            ← ホームに戻る
-          </button>
+        <div className="text-center space-y-2">
+          <div>
+            <Link
+              to="/password/reset"
+              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+            >
+              パスワードをお忘れの方はこちら
+            </Link>
+          </div>
+          <div>
+            <Link
+              to="/"
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            >
+              ← ホームに戻る
+            </Link>
+          </div>
         </div>
       </div>
     </Layout>
