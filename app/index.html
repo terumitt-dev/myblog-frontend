@@ -5,6 +5,13 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My Blog (go-lilaregard)</title>
+    <!--
+      Cloudflare Turnstile widget script.
+      コメントフォームの bot 対策で使用 (TurnstileWidget.tsx)。
+      公式 endpoint から直接読み込むことで npm 依存を増やさず、
+      サプライチェーン経由のリスクを避けている。
+    -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   </head>
   <body>
     <div id="root"></div>

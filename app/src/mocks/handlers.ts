@@ -258,18 +258,21 @@ export const handlers = [
   }),
 
   // コメント投稿
+  // 本物の backend は body の top-level に `turnstile_token` を要求するが、
+  // MSW (dev:mock) では検証を行わず素通しする。リクエスト body の shape は
+  // 本物に合わせて { comment: { user_name, comment }, turnstile_token } を受ける。
   http.post(`${API_BASE}/blogs/:id/comments`, async ({ params, request }) => {
     const blogId = parseInt(params.id as string, 10);
     const body = (await request.json()) as {
-      user_name: string;
-      comment: string;
+      comment: { user_name: string; comment: string };
+      turnstile_token?: string;
     };
 
     const newComment: Comment = {
       id: Date.now(),
       blog_id: blogId,
-      user_name: body.user_name,
-      comment: body.comment,
+      user_name: body.comment.user_name,
+      comment: body.comment.comment,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
