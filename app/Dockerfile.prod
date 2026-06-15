@@ -16,12 +16,16 @@ ARG VITE_API_BASE_URL=/api
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 # Cloudflare Turnstile widget の Site Key (公開値)。
-# 未指定なら CommentForm 側で Cloudflare 公開テストキー (always pass) に
-# フォールバックする。本番ビルドは Drone CI で本物の Site Key を Drone Secret
-# 経由で渡す。Site Key は HTML に露出する公開情報なので Secret 化必須ではないが、
+# 本番ビルドは Drone CI で本物の Site Key を Drone Secret 経由で渡す。
+# Site Key は HTML に露出する公開情報なので Secret 化必須ではないが、
 # 鍵ローテーション容易性のため Drone org Secret 管理にしている。
+# build 時に未設定だと CommentForm 側のロード時 throw で発火するため、
+# CI 上で即気付けるよう build 前にも必須チェックを置く (二重ガード)。
 ARG VITE_TURNSTILE_SITE_KEY
 ENV VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
+
+RUN test -n "$VITE_TURNSTILE_SITE_KEY" \
+  || (echo "VITE_TURNSTILE_SITE_KEY is required for production build" >&2; exit 1)
 
 RUN npm run build
 

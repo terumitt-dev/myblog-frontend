@@ -92,13 +92,21 @@ const TurnstileWidget = ({
         return;
       }
 
-      widgetIdRef.current = window.turnstile.render(containerRef.current, {
-        sitekey: siteKey,
-        callback: onSuccess,
-        "error-callback": onError,
-        "expired-callback": onExpire,
-        theme,
-      });
+      // render() は通常 widget id を返すだけだが、不正な siteKey や script 側の
+      // 不具合で例外を投げるケースがある。catch せず外に伝播するとフォーム所属の
+      // ページ全体が React error boundary or Vite の overlay で壊れて見えるため、
+      // 例外時は onError に倒して既存のエラー表示パスに合流させる。
+      try {
+        widgetIdRef.current = window.turnstile.render(containerRef.current, {
+          sitekey: siteKey,
+          callback: onSuccess,
+          "error-callback": onError,
+          "expired-callback": onExpire,
+          theme,
+        });
+      } catch {
+        onError?.();
+      }
     };
 
     renderWhenReady();

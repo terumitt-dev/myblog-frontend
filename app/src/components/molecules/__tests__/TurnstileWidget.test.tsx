@@ -187,6 +187,26 @@ describe("TurnstileWidget", () => {
     expect(darkArgs.theme).toBe("dark");
   });
 
+  it("window.turnstile.render が例外を投げたら onError に倒すこと (app crash 防止)", async () => {
+    const onError = vi.fn();
+    // render を throw に差し替え
+    mock.render.mockImplementation(() => {
+      throw new Error("render failed");
+    });
+
+    expect(() =>
+      render(
+        <TurnstileWidget
+          siteKey="test-key"
+          onSuccess={() => {}}
+          onError={onError}
+        />,
+      ),
+    ).not.toThrow();
+
+    await waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+  });
+
   it("window.turnstile が一定時間生えなければ onError を呼んでポーリングを止めること", async () => {
     // script が永続的にロードされないケースをシミュレート。
     delete (window as { turnstile?: unknown }).turnstile;

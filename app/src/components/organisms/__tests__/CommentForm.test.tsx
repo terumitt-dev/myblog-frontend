@@ -158,7 +158,7 @@ describe("CommentForm", () => {
     await waitFor(() => expect(submit).toBeDisabled());
   });
 
-  it("Turnstile error 発生時にユーザー向けエラーメッセージが表示されること", async () => {
+  it("Turnstile error 発生時に「読み込みに失敗」メッセージが表示されること", async () => {
     render(<CommentForm onSubmit={() => {}} onCancel={() => {}} />);
 
     // 初期状態ではメッセージは出ていない
@@ -169,10 +169,12 @@ describe("CommentForm", () => {
     });
 
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("認証 widget の読み込みに失敗しました");
+    expect(alert).toHaveTextContent(
+      "認証 widget の読み込みに失敗しました",
+    );
   });
 
-  it("Turnstile expire 発生時もエラーメッセージが表示されること", async () => {
+  it("Turnstile expire 発生時には別の「有効期限切れ」メッセージが表示されること", async () => {
     render(<CommentForm onSubmit={() => {}} onCancel={() => {}} />);
 
     act(() => {
@@ -180,7 +182,11 @@ describe("CommentForm", () => {
     });
 
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("認証 widget の読み込みに失敗しました");
+    // expire はネットワーク障害ではないので、文言を別にして
+    // ユーザーが原因を取り違えないようにする
+    expect(alert).toHaveTextContent("認証の有効期限が切れました");
+    // error 用文言は混ざらない
+    expect(alert).not.toHaveTextContent("ネットワーク状況を確認");
   });
 
   it("エラーメッセージは新しい token 取得で消えること", async () => {
