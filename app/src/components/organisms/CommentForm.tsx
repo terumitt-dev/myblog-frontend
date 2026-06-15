@@ -30,22 +30,30 @@ const CommentForm = ({ onSubmit, onCancel, disabled = false }: Props) => {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   // submit 成功後に widget を reset するためのカウンタ。
   const [resetSignal, setResetSignal] = useState(0);
+  // widget のエラー / 期限切れ状態。ユーザーへフィードバックを表示するために使う
+  // (token を null にするだけだとボタンが急に disabled になる理由が伝わらない)。
+  const [turnstileError, setTurnstileError] = useState(false);
 
   const userNameId = useId();
   const commentId = useId();
 
   const handleTurnstileSuccess = useCallback((token: string) => {
     setTurnstileToken(token);
+    setTurnstileError(false);
   }, []);
 
   const handleTurnstileExpire = useCallback(() => {
     // token の有効期限切れ。submit を再度ブロックするため state をクリアする。
+    // ユーザーには再 challenge が必要であることをメッセージで伝える。
     setTurnstileToken(null);
+    setTurnstileError(true);
   }, []);
 
   const handleTurnstileError = useCallback(() => {
-    // widget 側のエラー (ネットワーク断など)。token を無効化して再 challenge 待ち。
+    // widget 側のエラー (ネットワーク断 / script load 失敗など)。
+    // token を無効化し、ユーザー向けにエラーメッセージを出す。
     setTurnstileToken(null);
+    setTurnstileError(true);
   }, []);
 
   const handleSubmit = () => {
@@ -93,6 +101,14 @@ const CommentForm = ({ onSubmit, onCancel, disabled = false }: Props) => {
         onError={handleTurnstileError}
         resetSignal={resetSignal}
       />
+      {turnstileError && (
+        <p
+          role="alert"
+          className="text-sm text-red-600 dark:text-red-400"
+        >
+          認証 widget の読み込みに失敗しました。ネットワーク状況を確認し、ページを再読み込みしてください。
+        </p>
+      )}
       <CommentButtons
         onSubmit={handleSubmit}
         onCancel={onCancel}

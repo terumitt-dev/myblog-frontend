@@ -41,7 +41,19 @@ type Props = {
    * 値が変わった時に widget の token を破棄して再チャレンジを促す。
    */
   resetSignal?: number;
+  /**
+   * Cloudflare Turnstile widget の表示テーマ。デフォルト "auto" で
+   * OS / ブラウザのダークモード設定に追従する。本ブログは Tailwind の dark:
+   * クラスで配色を切り替えているため、widget も追従させて見た目を統一する。
+   */
+  theme?: "light" | "dark" | "auto";
 };
+
+// script が広告ブロッカー / ネットワーク障害で読み込まれないケースでも
+// ポーリングが永続化しないよう上限を設ける。50ms × 100 = 約 5 秒。
+// この時間で window.turnstile が生えなければ onError を呼んで諦める。
+const SCRIPT_READY_POLL_INTERVAL_MS = 50;
+const SCRIPT_READY_MAX_RETRIES = 100;
 
 const TurnstileWidget = ({
   siteKey,
@@ -49,6 +61,7 @@ const TurnstileWidget = ({
   onError,
   onExpire,
   resetSignal,
+  theme = "auto",
 }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
@@ -60,15 +73,22 @@ const TurnstileWidget = ({
   // script は index.html で async defer 読み込み。マウント時点で
   // window.turnstile が未定義のケースがあるため、ready ポーリングで
   // 利用可能になってから render する。
+  // ポーリングは SCRIPT_READY_MAX_RETRIES 回で打ち切り、それまでに script が
+  // 来なければ onError を呼んで諦める (ad blocker や Cloudflare 障害対策)。
   useEffect(() => {
     let cancelled = false;
+    let retries = 0;
 
     const renderWhenReady = () => {
       if (cancelled) return;
       if (!containerRef.current) return;
       if (!window.turnstile) {
-        // 50ms 間隔で短時間だけポーリング (実用上 1〜2 回で resolve する)
-        window.setTimeout(renderWhenReady, 50);
+        if (retries >= SCRIPT_READY_MAX_RETRIES) {
+          onError?.();
+          return;
+        }
+        retries += 1;
+        window.setTimeout(renderWhenReady, SCRIPT_READY_POLL_INTERVAL_MS);
         return;
       }
 
@@ -77,6 +97,7 @@ const TurnstileWidget = ({
         callback: onSuccess,
         "error-callback": onError,
         "expired-callback": onExpire,
+        theme,
       });
     };
 
@@ -90,7 +111,7 @@ const TurnstileWidget = ({
       }
     };
     // siteKey が動的に変わるケースは想定していないが、安全側で deps に含める
-  }, [siteKey, onSuccess, onError, onExpire]);
+  }, [siteKey, onSuccess, onError, onExpire, theme]);
 
   // resetSignal が変化したら widget を reset (新しい token を取得しなおす)。
   // 初回マウント時は (resetSignal の初期値が defined であっても) 実行しない

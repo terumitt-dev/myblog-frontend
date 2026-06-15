@@ -164,4 +164,54 @@ describe("TurnstileWidget", () => {
       ),
     ).not.toThrow();
   });
+
+  it("theme prop を render に渡すこと (デフォルトは auto)", async () => {
+    const { unmount } = render(
+      <TurnstileWidget siteKey="test-key" onSuccess={() => {}} />,
+    );
+    await waitFor(() => expect(mock.render).toHaveBeenCalled());
+    const defaultArgs = mock.render.mock.calls[0]?.[1] as { theme?: string };
+    expect(defaultArgs.theme).toBe("auto");
+    unmount();
+    mock.render.mockClear();
+
+    render(
+      <TurnstileWidget
+        siteKey="test-key"
+        onSuccess={() => {}}
+        theme="dark"
+      />,
+    );
+    await waitFor(() => expect(mock.render).toHaveBeenCalled());
+    const darkArgs = mock.render.mock.calls[0]?.[1] as { theme?: string };
+    expect(darkArgs.theme).toBe("dark");
+  });
+
+  it("window.turnstile が一定時間生えなければ onError を呼んでポーリングを止めること", async () => {
+    // script が永続的にロードされないケースをシミュレート。
+    delete (window as { turnstile?: unknown }).turnstile;
+    vi.useFakeTimers();
+
+    const onError = vi.fn();
+    render(
+      <TurnstileWidget
+        siteKey="test-key"
+        onSuccess={() => {}}
+        onError={onError}
+      />,
+    );
+
+    // SCRIPT_READY_MAX_RETRIES (100) * SCRIPT_READY_POLL_INTERVAL_MS (50) = 5000ms
+    // で諦める設計。余裕を持って 6 秒進める。
+    await vi.advanceTimersByTimeAsync(6000);
+
+    expect(onError).toHaveBeenCalledTimes(1);
+
+    // さらに時間を進めても再度 onError が呼ばれないこと (ポーリングが止まっている)
+    onError.mockClear();
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(onError).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
+  });
 });

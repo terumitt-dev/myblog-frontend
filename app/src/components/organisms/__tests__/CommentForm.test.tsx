@@ -11,9 +11,11 @@ const installTurnstileMock = () => {
   const callbacks: {
     success: ((token: string) => void) | null;
     expire: (() => void) | null;
+    error: (() => void) | null;
   } = {
     success: null,
     expire: null,
+    error: null,
   };
 
   (window as { turnstile?: unknown }).turnstile = {
@@ -23,10 +25,12 @@ const installTurnstileMock = () => {
         options: {
           callback?: (token: string) => void;
           "expired-callback"?: () => void;
+          "error-callback"?: () => void;
         },
       ) => {
         callbacks.success = options.callback ?? null;
         callbacks.expire = options["expired-callback"] ?? null;
+        callbacks.error = options["error-callback"] ?? null;
         return "widget-id-stub";
       },
     ),
@@ -37,6 +41,7 @@ const installTurnstileMock = () => {
   return {
     triggerSuccess: (token: string) => callbacks.success?.(token),
     triggerExpire: () => callbacks.expire?.(),
+    triggerError: () => callbacks.error?.(),
   };
 };
 
@@ -151,6 +156,48 @@ describe("CommentForm", () => {
     expect(nameInput).toHaveValue("");
     expect(commentInput).toHaveValue("");
     await waitFor(() => expect(submit).toBeDisabled());
+  });
+
+  it("Turnstile error 発生時にユーザー向けエラーメッセージが表示されること", async () => {
+    render(<CommentForm onSubmit={() => {}} onCancel={() => {}} />);
+
+    // 初期状態ではメッセージは出ていない
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+
+    act(() => {
+      mock.triggerError();
+    });
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("認証 widget の読み込みに失敗しました");
+  });
+
+  it("Turnstile expire 発生時もエラーメッセージが表示されること", async () => {
+    render(<CommentForm onSubmit={() => {}} onCancel={() => {}} />);
+
+    act(() => {
+      mock.triggerExpire();
+    });
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("認証 widget の読み込みに失敗しました");
+  });
+
+  it("エラーメッセージは新しい token 取得で消えること", async () => {
+    render(<CommentForm onSubmit={() => {}} onCancel={() => {}} />);
+
+    act(() => {
+      mock.triggerError();
+    });
+    await screen.findByRole("alert");
+
+    act(() => {
+      mock.triggerSuccess("recovered-token");
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
   });
 
   it("disabled prop が true の時はあらゆる入力後も送信できないこと", async () => {
