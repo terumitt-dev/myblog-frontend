@@ -68,6 +68,11 @@ describe("TurnstileWidget", () => {
   });
 
   afterEach(() => {
+    // fake timers を使うテストが途中で失敗した場合に、復元漏れで
+    // 後続テストが fake timer のまま走ってフレーキー化するのを防ぐため
+    // ここで一括復元する (各テスト末尾での useRealTimers ではなく集約方式)。
+    vi.clearAllTimers();
+    vi.useRealTimers();
     cleanup();
     delete (window as { turnstile?: unknown }).turnstile;
   });
@@ -231,7 +236,6 @@ describe("TurnstileWidget", () => {
     onError.mockClear();
     await vi.advanceTimersByTimeAsync(5000);
     expect(onError).not.toHaveBeenCalled();
-
-    vi.useRealTimers();
+    // useRealTimers は afterEach で集約復元する (途中失敗時の漏洩対策)。
   });
 });
