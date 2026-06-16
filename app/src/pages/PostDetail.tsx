@@ -115,9 +115,12 @@ const PostDetail = () => {
       setIsWriting(false);
     } catch (error) {
       console.error("コメント投稿エラー:", error);
-      alert("コメントの投稿に失敗しました。もう一度お試しください。");
-      // CommentForm 側で入力欄を保持して再投稿可能にしてもらうため、
-      // エラーは飲み込まず再 throw する (CommentForm は catch して clear をスキップする)。
+      // CommentForm 側に失敗を伝播させる。CommentForm は catch で:
+      //   - userName / comment を保持 (ユーザーが再入力せずに済む)
+      //   - turnstileToken を破棄 + widget reset (single-use の token 再利用回避)
+      //   - turnstileError = "submit_failed" でユーザー向けメッセージ表示
+      // この 3 つで失敗の事実と次のアクションが十分伝わるため、alert() で
+      // モーダル通知して UX を中断する必要は無い (旧実装の alert() は撤去済み)。
       throw error;
     } finally {
       setIsSubmittingComment(false);
