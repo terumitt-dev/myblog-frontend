@@ -300,6 +300,54 @@ describe("CommentForm", () => {
     });
   });
 
+  it("送信中の連打で onSubmit が複数回呼ばれないこと (二重送信防止 / 同じ token を再利用しない)", async () => {
+    // onSubmit を「resolve を外部から制御できる遅延 Promise」にして
+    // 「await 中に再クリックされた場合」をシミュレートする。
+    let resolveOnSubmit: ((value: void) => void) | undefined;
+    const onSubmit = vi.fn().mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveOnSubmit = resolve;
+        }),
+    );
+    const user = userEvent.setup();
+
+    render(<CommentForm onSubmit={onSubmit} onCancel={() => {}} />);
+
+    await user.type(screen.getByPlaceholderText("ユーザ名"), "alice");
+    await user.type(
+      screen.getByPlaceholderText("コメントを入力"),
+      "double-click guard",
+    );
+    act(() => {
+      mock.triggerSuccess("token-once");
+    });
+
+    const submit = screen.getByRole("button", { name: "コメントを確定する" });
+    await waitFor(() => expect(submit).not.toBeDisabled());
+
+    // 1 回目クリック (await 状態に入る) と 2 回目クリック (連打) をする。
+    // 2 回目は isSubmittingRef または isSubmitting でブロックされるべき。
+    await user.click(submit);
+    await user.click(submit);
+    await user.click(submit);
+
+    // 連打しても onSubmit は 1 回だけ呼ばれる = token 再利用されない
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit).toHaveBeenCalledWith(
+      "alice",
+      "double-click guard",
+      "token-once",
+    );
+    // 送信中なので submit ボタンは disabled (視覚的にもガード)
+    expect(submit).toBeDisabled();
+
+    // 解決させて成功パスを完了させる
+    await act(async () => {
+      resolveOnSubmit?.();
+    });
+  });
+
   it("disabled prop が true の時はあらゆる入力後も送信できないこと", async () => {
     const onSubmit = vi.fn();
     const user = userEvent.setup();

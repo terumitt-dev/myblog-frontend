@@ -1,5 +1,5 @@
 // src/components/organisms/CommentForm.tsx
-import { useState, useId, useCallback } from "react";
+import { useState, useId, useCallback, useRef } from "react";
 import Input from "@/components/atoms/Input";
 import Textarea from "@/components/atoms/Textarea";
 import CommentButtons from "@/components/molecules/CommentButtons";
@@ -72,6 +72,13 @@ const CommentForm = ({ onSubmit, onCancel, disabled = false }: Props) => {
   // (token を null にするだけだとボタンが急に disabled になる理由が伝わらない)。
   const [turnstileError, setTurnstileError] =
     useState<TurnstileErrorState>(null);
+  // 二重送信防止:
+  // - isSubmittingRef: 同期的な再入ガード (ref は即時反映、state の render lag を
+  //   待たない)。await 中の連打で同じ Turnstile token が使い回されるのを防ぐ。
+  // - isSubmitting: UI 反映用 (submit ボタンの disabled、視覚的フィードバック)。
+  // 両者を組み合わせることで、視覚的にも論理的にも二重送信を弾く。
+  const isSubmittingRef = useRef(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const userNameId = useId();
   const commentId = useId();
@@ -96,6 +103,11 @@ const CommentForm = ({ onSubmit, onCancel, disabled = false }: Props) => {
   }, []);
 
   const handleSubmit = async () => {
+    // 同期的な再入ガード。state ベースの isSubmitting は次回 render まで
+    // 反映されないので、その間の連打を ref で確実に弾く。
+    if (isSubmittingRef.current) {
+      return;
+    }
     if (
       !userName.trim() ||
       !comment.trim() ||
@@ -104,6 +116,9 @@ const CommentForm = ({ onSubmit, onCancel, disabled = false }: Props) => {
     ) {
       return;
     }
+
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
 
     try {
       // onSubmit が同期 (void) の場合も await で素通りする。
@@ -130,6 +145,10 @@ const CommentForm = ({ onSubmit, onCancel, disabled = false }: Props) => {
       setTurnstileError("submit_failed");
       setResetSignal((prev) => prev + 1);
       return;
+    } finally {
+      // 成功 / 失敗のどちらの経路でも送信中フラグを解除する。
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
     }
 
     setUserName("");
@@ -139,10 +158,16 @@ const CommentForm = ({ onSubmit, onCancel, disabled = false }: Props) => {
     setResetSignal((prev) => prev + 1);
   };
 
-  // 送信ボタンの disabled 判定: 親からの disabled に加えて、
-  // 入力欠落 / Turnstile 未完了のいずれかを満たさない場合も送信不可。
+  // 送信ボタンの disabled 判定: 親からの disabled / 入力欠落 / Turnstile 未完了 /
+  // 送信中 (isSubmitting) のいずれかを満たす場合は送信不可。
+  // 親 (PostDetail) も `disabled={isSubmittingComment}` を渡すが、その state 反映には
+  // re-render を待つため、CommentForm 内の isSubmitting でも視覚的に即時 disable する。
   const submitDisabled =
-    disabled || !userName.trim() || !comment.trim() || !turnstileToken;
+    isSubmitting ||
+    disabled ||
+    !userName.trim() ||
+    !comment.trim() ||
+    !turnstileToken;
 
   return (
     <div className="flex flex-col gap-3 p-4 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
