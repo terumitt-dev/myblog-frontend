@@ -32,13 +32,18 @@ if (!TURNSTILE_SITE_KEY) {
 // - null: エラー無し
 // - "error": widget のロード失敗 / script ブロック / network 断 等
 // - "expire": token の有効期限切れ (Cloudflare が再 challenge を促す状態)
+// - "submit_failed": 投稿失敗で token を破棄して widget を reset した状態
+//   (alert だけだと「なぜ再度認証が必要なのか」が伝わらないため、
+//    widget 直下にも理由をテキストで提示する)
 // 文言を分けることでユーザーが原因を把握しやすくする。
-type TurnstileErrorState = null | "error" | "expire";
+type TurnstileErrorState = null | "error" | "expire" | "submit_failed";
 
 const TURNSTILE_ERROR_MESSAGES: Record<Exclude<TurnstileErrorState, null>, string> = {
   error:
     "認証 widget の読み込みに失敗しました。ネットワーク状況を確認し、ページを再読み込みしてください。",
   expire: "認証の有効期限が切れました。widget を再度お試しください。",
+  submit_failed:
+    "投稿が失敗しました。認証 widget を再度解いてから、もう一度お試しください。",
 };
 
 type Props = {
@@ -108,6 +113,9 @@ const CommentForm = ({ onSubmit, onCancel, disabled = false }: Props) => {
       // 投稿失敗時の方針:
       // - 入力欄 (userName / comment) は保持 → ユーザーが内容を再入力せずに済む
       // - Turnstile token は破棄 + widget reset → token 再利用の事故を防ぐ
+      // - turnstileError = "submit_failed" → widget 直下に「再認証が必要」
+      //   メッセージを表示 (親の alert だけでは widget を再解決する理由が
+      //   伝わらないため)
       //
       // 理由: Cloudflare Turnstile の token は single-use で、backend の
       // siteverify が 1 度通った時点で消費される (再 verify は失敗する仕様)。
@@ -117,8 +125,9 @@ const CommentForm = ({ onSubmit, onCancel, disabled = false }: Props) => {
       // ネットワーク断のような「backend 到達せず token 未消費」のケースでは
       // widget 再解決が必要になるが、auto/managed テーマは概ね invisible で
       // 解決するので UX 損失は限定的、トレードオフとして受容する。
-      // エラー表示は親 (PostDetail) 側の責務。
+      // 投稿失敗の通知 (alert 等) は親 (PostDetail) 側の責務。
       setTurnstileToken(null);
+      setTurnstileError("submit_failed");
       setResetSignal((prev) => prev + 1);
       return;
     }

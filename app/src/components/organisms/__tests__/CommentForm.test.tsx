@@ -140,7 +140,7 @@ describe("CommentForm", () => {
     await waitFor(() => expect(submit).toBeDisabled());
   });
 
-  it("onSubmit が失敗 (reject) した場合は入力欄を保持しつつ token を破棄して widget を reset すること", async () => {
+  it("onSubmit が失敗 (reject) した場合は入力欄を保持しつつ token を破棄して widget を reset し、再認証メッセージを表示すること", async () => {
     const onSubmit = vi.fn().mockRejectedValue(new Error("network failure"));
     const user = userEvent.setup();
 
@@ -172,6 +172,14 @@ describe("CommentForm", () => {
     await waitFor(() => {
       expect(mock.reset).toHaveBeenCalledWith("widget-id-stub");
     });
+    // ユーザーに「再認証が必要」な旨を widget 直下に表示する
+    // (error / expire と文言を分けることで原因を識別可能にする)。
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("投稿が失敗しました");
+    expect(alert).toHaveTextContent("認証 widget を再度解いて");
+    // error / expire 用文言と混ざらないことの担保
+    expect(alert).not.toHaveTextContent("ネットワーク状況を確認");
+    expect(alert).not.toHaveTextContent("有効期限が切れました");
   });
 
   it("失敗後に新しい token を取得すれば再投稿できること", async () => {
@@ -198,10 +206,18 @@ describe("CommentForm", () => {
     await user.click(submit);
 
     await waitFor(() => expect(submit).toBeDisabled());
+    // 失敗直後は再認証メッセージが表示される
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "投稿が失敗しました",
+    );
 
     // 2 回目: 新しい token B を取得 → submit → 成功
     act(() => {
       mock.triggerSuccess("token-B");
+    });
+    // 新 token を受け取った時点で「再認証が必要」メッセージは消える
+    await waitFor(() => {
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
     await waitFor(() => expect(submit).not.toBeDisabled());
     await user.click(submit);
