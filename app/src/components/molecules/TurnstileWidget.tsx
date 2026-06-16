@@ -78,8 +78,14 @@ const TurnstileWidget = ({
   useEffect(() => {
     let cancelled = false;
     let retries = 0;
+    // ポーリング待機中の setTimeout ID。cleanup で確実に解除し、
+    // unmount 後にタイマーが残らないようにする (テストの fake timer 環境でも
+    // 後続テストへ漏れを防ぐ意図)。cancelled フラグだけでも動作は壊れないが、
+    // OS のタイマー資源を即座に手放す方が clean。
+    let pendingTimeoutId: number | null = null;
 
     const renderWhenReady = () => {
+      pendingTimeoutId = null;
       if (cancelled) return;
       if (!containerRef.current) return;
       if (!window.turnstile) {
@@ -88,7 +94,10 @@ const TurnstileWidget = ({
           return;
         }
         retries += 1;
-        window.setTimeout(renderWhenReady, SCRIPT_READY_POLL_INTERVAL_MS);
+        pendingTimeoutId = window.setTimeout(
+          renderWhenReady,
+          SCRIPT_READY_POLL_INTERVAL_MS,
+        );
         return;
       }
 
@@ -113,6 +122,10 @@ const TurnstileWidget = ({
 
     return () => {
       cancelled = true;
+      if (pendingTimeoutId !== null) {
+        window.clearTimeout(pendingTimeoutId);
+        pendingTimeoutId = null;
+      }
       if (widgetIdRef.current && window.turnstile) {
         window.turnstile.remove(widgetIdRef.current);
         widgetIdRef.current = null;

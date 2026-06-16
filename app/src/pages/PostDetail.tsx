@@ -116,6 +116,9 @@ const PostDetail = () => {
     } catch (error) {
       console.error("コメント投稿エラー:", error);
       alert("コメントの投稿に失敗しました。もう一度お試しください。");
+      // CommentForm 側で入力欄を保持して再投稿可能にしてもらうため、
+      // エラーは飲み込まず再 throw する (CommentForm は catch して clear をスキップする)。
+      throw error;
     } finally {
       setIsSubmittingComment(false);
     }

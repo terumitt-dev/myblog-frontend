@@ -133,6 +133,33 @@ describe("CommentForm", () => {
     await waitFor(() => expect(submit).toBeDisabled());
   });
 
+  it("onSubmit が失敗 (reject) した場合は入力欄と token を保持して再投稿可能なこと", async () => {
+    const onSubmit = vi.fn().mockRejectedValue(new Error("network failure"));
+    const user = userEvent.setup();
+
+    render(<CommentForm onSubmit={onSubmit} onCancel={() => {}} />);
+
+    const nameInput = screen.getByPlaceholderText("ユーザ名");
+    const commentInput = screen.getByPlaceholderText("コメントを入力");
+
+    await user.type(nameInput, "alice");
+    await user.type(commentInput, "retry-needed");
+    act(() => {
+      mock.triggerSuccess("token-retry");
+    });
+
+    const submit = screen.getByRole("button", { name: "コメントを確定する" });
+    await waitFor(() => expect(submit).not.toBeDisabled());
+    await user.click(submit);
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+
+    // 失敗時は入力欄と token がクリアされず、ユーザーが再投稿できる状態が保たれる
+    expect(nameInput).toHaveValue("alice");
+    expect(commentInput).toHaveValue("retry-needed");
+    expect(submit).not.toBeDisabled();
+  });
+
   it("送信成功後に入力欄がクリアされること", async () => {
     const onSubmit = vi.fn();
     const user = userEvent.setup();

@@ -42,11 +42,16 @@ const TURNSTILE_ERROR_MESSAGES: Record<Exclude<TurnstileErrorState, null>, strin
 };
 
 type Props = {
+  /**
+   * 送信処理。Promise を返す場合はその解決を待ってから入力欄をクリアする
+   * (失敗 = reject なら入力欄を保持してユーザーがリトライできるようにする)。
+   * 同期実装 (void 返却) もサポートし、その場合は従来通り即クリアする。
+   */
   onSubmit: (
     userName: string,
     comment: string,
     turnstileToken: string,
-  ) => void;
+  ) => void | Promise<void>;
   onCancel: () => void;
   disabled?: boolean;
 };
@@ -85,20 +90,31 @@ const CommentForm = ({ onSubmit, onCancel, disabled = false }: Props) => {
     setTurnstileError("error");
   }, []);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (
-      userName.trim() &&
-      comment.trim() &&
-      turnstileToken &&
-      !disabled
+      !userName.trim() ||
+      !comment.trim() ||
+      !turnstileToken ||
+      disabled
     ) {
-      onSubmit(userName, comment, turnstileToken);
-      setUserName("");
-      setComment("");
-      // 次の投稿用に widget を reset し、再 challenge を求める。
-      setTurnstileToken(null);
-      setResetSignal((prev) => prev + 1);
+      return;
     }
+
+    try {
+      // onSubmit が同期 (void) の場合も await で素通りする。
+      // 非同期 (Promise) を返す場合は完了/失敗を待ってから次の処理に進む。
+      await onSubmit(userName, comment, turnstileToken);
+    } catch {
+      // 投稿失敗時は入力欄と token を保持し、ユーザーが再投稿できるようにする。
+      // エラー表示は親 (PostDetail) 側の責務。
+      return;
+    }
+
+    setUserName("");
+    setComment("");
+    // 次の投稿用に widget を reset し、再 challenge を求める。
+    setTurnstileToken(null);
+    setResetSignal((prev) => prev + 1);
   };
 
   // 送信ボタンの disabled 判定: 親からの disabled に加えて、
