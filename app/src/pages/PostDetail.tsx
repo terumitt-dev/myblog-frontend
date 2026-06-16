@@ -119,8 +119,8 @@ const PostDetail = () => {
       //   - userName / comment を保持 (ユーザーが再入力せずに済む)
       //   - turnstileToken を破棄 + widget reset (single-use の token 再利用回避)
       //   - turnstileError = "submit_failed" でユーザー向けメッセージ表示
-      // この 3 つで失敗の事実と次のアクションが十分伝わるため、alert() で
-      // モーダル通知して UX を中断する必要は無い (旧実装の alert() は撤去済み)。
+      // この 3 つで失敗の事実と次のアクションが十分伝わるので、ページ側で
+      // 追加のモーダル通知などは行わない (UX を中断しない方針)。
       throw error;
     } finally {
       setIsSubmittingComment(false);
