@@ -1,6 +1,13 @@
 // app/src/components/organisms/__tests__/CommentForm.test.tsx
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, screen, cleanup, waitFor, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  cleanup,
+  waitFor,
+  act,
+  fireEvent,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import CommentForm from "../CommentForm";
 
@@ -343,6 +350,57 @@ describe("CommentForm", () => {
     expect(submit).toBeDisabled();
 
     // 解決させて成功パスを完了させる
+    await act(async () => {
+      resolveOnSubmit?.();
+    });
+  });
+
+  // 同一 tick 内での同期的な再入を厳密に再現するテスト。
+  // userEvent.click は内部で React の render 完了を待つため、その直列利用だと
+  // 1 回目クリック後の isSubmitting state 反映で 2 回目以降は disabled な
+  // ボタンへの click として扱われる (DOM レベルでブロック)。
+  // fireEvent.click を同一 act 内で連続発火することで render 介入を挟まず、
+  // isSubmittingRef による「同期的な再入ガード」自体を直接テストできる。
+  it("同一 tick 内での連打でも isSubmittingRef により onSubmit が 1 回だけ呼ばれること", async () => {
+    let resolveOnSubmit: ((value: void) => void) | undefined;
+    const onSubmit = vi.fn().mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveOnSubmit = resolve;
+        }),
+    );
+    const user = userEvent.setup();
+
+    render(<CommentForm onSubmit={onSubmit} onCancel={() => {}} />);
+
+    await user.type(screen.getByPlaceholderText("ユーザ名"), "alice");
+    await user.type(
+      screen.getByPlaceholderText("コメントを入力"),
+      "sync-tick guard",
+    );
+    act(() => {
+      mock.triggerSuccess("token-sync");
+    });
+
+    const submit = screen.getByRole("button", { name: "コメントを確定する" });
+    await waitFor(() => expect(submit).not.toBeDisabled());
+
+    // 同一 act 内で fireEvent.click を 3 連発する = 同一 tick 内の同期的な
+    // 再入を再現する。userEvent.click と違い render 待ちを挟まないため、
+    // setIsSubmitting(true) の state 反映に依らない ref ガードを検証できる。
+    act(() => {
+      fireEvent.click(submit);
+      fireEvent.click(submit);
+      fireEvent.click(submit);
+    });
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(onSubmit).toHaveBeenCalledWith(
+      "alice",
+      "sync-tick guard",
+      "token-sync",
+    );
+
     await act(async () => {
       resolveOnSubmit?.();
     });
