@@ -22,6 +22,11 @@ steps:
         from_secret: AWS_SECRET_ACCESS_KEY
       ECR_REGISTRY:
         from_secret: ECR_REGISTRY
+      # Cloudflare Turnstile widget Site Key (公開値だが、鍵ローテーションを
+      # 容易にするため Drone org Secret 経由で注入する)。
+      # docker build の --build-arg 経由で Vite ビルドに埋め込む。
+      VITE_TURNSTILE_SITE_KEY:
+        from_secret: VITE_TURNSTILE_SITE_KEY
     commands:
       - set -euo pipefail
       - echo "🐳 Starting Docker daemon..."
@@ -36,7 +41,11 @@ steps:
 
       # === CI: ビルド & 検証 ===
       - echo "🔨 Building Docker image..."
-      - docker build -f app/Dockerfile.prod --build-arg VITE_API_BASE_URL=/api -t go-lilaregard-frontend:ci app/
+      - |
+        docker build -f app/Dockerfile.prod \
+          --build-arg VITE_API_BASE_URL=/api \
+          --build-arg VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY \
+          -t go-lilaregard-frontend:ci app/
       - echo "✅ Build succeeded"
 
       - echo ""

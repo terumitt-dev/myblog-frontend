@@ -75,7 +75,13 @@ const PostDetail = () => {
   }, [postId]);
 
   // コメント投稿処理
-  const handleCommentSubmit = async (name: string, content: string) => {
+  // turnstileToken は CommentForm 内の Turnstile widget が解決した token。
+  // body の top-level に `turnstile_token` として渡し、backend で siteverify される。
+  const handleCommentSubmit = async (
+    name: string,
+    content: string,
+    turnstileToken: string,
+  ) => {
     if (!postId) return;
 
     setIsSubmittingComment(true);
@@ -91,6 +97,7 @@ const PostDetail = () => {
             user_name: name.trim(),
             comment: content.trim(),
           },
+          turnstile_token: turnstileToken,
         }),
       });
 
@@ -108,7 +115,13 @@ const PostDetail = () => {
       setIsWriting(false);
     } catch (error) {
       console.error("コメント投稿エラー:", error);
-      alert("コメントの投稿に失敗しました。もう一度お試しください。");
+      // CommentForm 側に失敗を伝播させる。CommentForm は catch で:
+      //   - userName / comment を保持 (ユーザーが再入力せずに済む)
+      //   - turnstileToken を破棄 + widget reset (single-use の token 再利用回避)
+      //   - turnstileError = "submit_failed" でユーザー向けメッセージ表示
+      // この 3 つで失敗の事実と次のアクションが十分伝わるので、ページ側で
+      // 追加のモーダル通知などは行わない (UX を中断しない方針)。
+      throw error;
     } finally {
       setIsSubmittingComment(false);
     }
