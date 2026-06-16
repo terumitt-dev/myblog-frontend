@@ -105,8 +105,21 @@ const CommentForm = ({ onSubmit, onCancel, disabled = false }: Props) => {
       // 非同期 (Promise) を返す場合は完了/失敗を待ってから次の処理に進む。
       await onSubmit(userName, comment, turnstileToken);
     } catch {
-      // 投稿失敗時は入力欄と token を保持し、ユーザーが再投稿できるようにする。
+      // 投稿失敗時の方針:
+      // - 入力欄 (userName / comment) は保持 → ユーザーが内容を再入力せずに済む
+      // - Turnstile token は破棄 + widget reset → token 再利用の事故を防ぐ
+      //
+      // 理由: Cloudflare Turnstile の token は single-use で、backend の
+      // siteverify が 1 度通った時点で消費される (再 verify は失敗する仕様)。
+      // 失敗の原因が verify 通過後の処理 (例: DB validation エラー) だった場合、
+      // token を保持して再 submit すると backend で再び 422 "認証に失敗" になり、
+      // ユーザーは原因不明のループに陥る。
+      // ネットワーク断のような「backend 到達せず token 未消費」のケースでは
+      // widget 再解決が必要になるが、auto/managed テーマは概ね invisible で
+      // 解決するので UX 損失は限定的、トレードオフとして受容する。
       // エラー表示は親 (PostDetail) 側の責務。
+      setTurnstileToken(null);
+      setResetSignal((prev) => prev + 1);
       return;
     }
 

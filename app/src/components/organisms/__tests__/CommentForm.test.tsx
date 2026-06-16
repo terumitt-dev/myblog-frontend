@@ -18,27 +18,34 @@ const installTurnstileMock = () => {
     error: null,
   };
 
-  (window as { turnstile?: unknown }).turnstile = {
-    render: vi.fn(
-      (
-        _el: HTMLElement,
-        options: {
-          callback?: (token: string) => void;
-          "expired-callback"?: () => void;
-          "error-callback"?: () => void;
-        },
-      ) => {
-        callbacks.success = options.callback ?? null;
-        callbacks.expire = options["expired-callback"] ?? null;
-        callbacks.error = options["error-callback"] ?? null;
-        return "widget-id-stub";
+  const renderFn = vi.fn(
+    (
+      _el: HTMLElement,
+      options: {
+        callback?: (token: string) => void;
+        "expired-callback"?: () => void;
+        "error-callback"?: () => void;
       },
-    ),
-    remove: vi.fn(),
-    reset: vi.fn(),
+    ) => {
+      callbacks.success = options.callback ?? null;
+      callbacks.expire = options["expired-callback"] ?? null;
+      callbacks.error = options["error-callback"] ?? null;
+      return "widget-id-stub";
+    },
+  );
+  const removeFn = vi.fn();
+  const resetFn = vi.fn();
+
+  (window as { turnstile?: unknown }).turnstile = {
+    render: renderFn,
+    remove: removeFn,
+    reset: resetFn,
   };
 
   return {
+    render: renderFn,
+    remove: removeFn,
+    reset: resetFn,
     triggerSuccess: (token: string) => callbacks.success?.(token),
     triggerExpire: () => callbacks.expire?.(),
     triggerError: () => callbacks.error?.(),
@@ -133,7 +140,7 @@ describe("CommentForm", () => {
     await waitFor(() => expect(submit).toBeDisabled());
   });
 
-  it("onSubmit が失敗 (reject) した場合は入力欄と token を保持して再投稿可能なこと", async () => {
+  it("onSubmit が失敗 (reject) した場合は入力欄を保持しつつ token を破棄して widget を reset すること", async () => {
     const onSubmit = vi.fn().mockRejectedValue(new Error("network failure"));
     const user = userEvent.setup();
 
@@ -154,10 +161,54 @@ describe("CommentForm", () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
 
-    // 失敗時は入力欄と token がクリアされず、ユーザーが再投稿できる状態が保たれる
+    // Cloudflare Turnstile の token は single-use なので、失敗時は token を
+    // 破棄 + widget reset して新しい token を取得しなおす設計。
+    // 入力欄はユーザーの再入力を不要にするため保持する。
     expect(nameInput).toHaveValue("alice");
     expect(commentInput).toHaveValue("retry-needed");
-    expect(submit).not.toBeDisabled();
+    // token を捨てたので submit は再 disabled。
+    expect(submit).toBeDisabled();
+    // widget を reset して新 challenge を求めることを確認。
+    await waitFor(() => {
+      expect(mock.reset).toHaveBeenCalledWith("widget-id-stub");
+    });
+  });
+
+  it("失敗後に新しい token を取得すれば再投稿できること", async () => {
+    const onSubmit = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("first try fails"))
+      .mockResolvedValueOnce(undefined);
+    const user = userEvent.setup();
+
+    render(<CommentForm onSubmit={onSubmit} onCancel={() => {}} />);
+
+    const nameInput = screen.getByPlaceholderText("ユーザ名");
+    const commentInput = screen.getByPlaceholderText("コメントを入力");
+
+    await user.type(nameInput, "alice");
+    await user.type(commentInput, "retry-needed");
+
+    // 1 回目: token A で submit → 失敗
+    act(() => {
+      mock.triggerSuccess("token-A");
+    });
+    const submit = screen.getByRole("button", { name: "コメントを確定する" });
+    await waitFor(() => expect(submit).not.toBeDisabled());
+    await user.click(submit);
+
+    await waitFor(() => expect(submit).toBeDisabled());
+
+    // 2 回目: 新しい token B を取得 → submit → 成功
+    act(() => {
+      mock.triggerSuccess("token-B");
+    });
+    await waitFor(() => expect(submit).not.toBeDisabled());
+    await user.click(submit);
+
+    expect(onSubmit).toHaveBeenCalledTimes(2);
+    // 2 回目の call は新 token (再利用していない) であることを確認
+    expect(onSubmit).toHaveBeenNthCalledWith(2, "alice", "retry-needed", "token-B");
   });
 
   it("送信成功後に入力欄がクリアされること", async () => {
