@@ -105,6 +105,39 @@ app/src/
 | エンドポイント検証 | プロトコル相対URL・パストラバーサルを拒否 |
 | セキュリティヘッダー | X-Frame-Options, X-Content-Type-Options, CSP 等（Nginx） |
 | エラー情報の制限 | エラーメッセージを最大500文字に切り詰め |
+| コメント Bot 対策 | Cloudflare Turnstile widget。公式 script を直読み込み（npm 依存ゼロ）、token 再利用ガード、二重送信防止、本番 Site Key 未設定で fail-fast |
+
+### コメント Bot 対策（Cloudflare Turnstile）
+
+コメント投稿時に Cloudflare Turnstile widget で bot 検証を行います。backend（[`myblog-backend`](https://github.com/terumitt-dev/myblog-backend)）と ops（[`go-lilaregard-ops`](https://github.com/terumitt-dev/go-lilaregard-ops)）の Secret 管理と組み合わせた多層構成です。
+
+**全体フロー**
+
+```
+ユーザー → widget 解決 → callback で token 取得 → submit
+       → POST /api/blogs/:id/comments (body の top-level に turnstile_token)
+       → backend が Cloudflare siteverify で検証 → 成功なら 201、失敗なら 422
+```
+
+**frontend 側の実装**
+
+- `app/src/components/molecules/TurnstileWidget.tsx`: Cloudflare 公式 script (`challenges.cloudflare.com/turnstile/v0/api.js`) を `index.html` から直接読み込み、薄いラッパー (~120 行) を自作（npm 依存ゼロでサプライチェーン攻撃のリスクを回避）
+- `app/src/components/organisms/CommentForm.tsx`: widget 埋め込み、token 取得、submit 有効化制御
+- 信頼性:
+  - script ロードのポーリングは最大 5 秒（広告ブロッカー等で永続化しないよう打ち切り）
+  - `window.turnstile.render` の例外は `try/catch` で捕捉して `onError` に倒す（app crash 防止）
+  - cleanup 時に `setTimeout` ID を解除（unmount 後にタイマー残らないように）
+- token 再利用ガード: 投稿失敗時は token を破棄 + widget を `reset`（Cloudflare token は single-use のため、`token 消費 → 422 ループ` を防ぐ）
+- 二重送信防止: `useRef`（同期再入ガード）+ `useState`（UI 反映）の両建てで、await 中の連打でも同じ token が使い回されない
+- 状態フィードバック: `error` / `expire` / `submit_failed` の 3 variant で `role="alert"` メッセージを出し分け（ユーザーが原因を識別可能）
+
+**Env 注入**
+
+| 値 | 用途 | 経路 |
+|---|---|---|
+| `VITE_TURNSTILE_SITE_KEY` | widget の Site Key (公開値、HTML に露出) | Drone org Secret → docker `--build-arg` → Vite ビルド時埋め込み |
+
+本番ビルドで未設定 / 空文字なら `Dockerfile.prod` の `RUN test -n` で build 失敗 + `CommentForm` のロード時 `throw` の二重ガード。dev / test 環境では Cloudflare 公開の always-pass テスト Site Key (`1x00000000000000000000AA`) にフォールバックするため追加設定不要。
 
 ## テスト
 
