@@ -11,13 +11,13 @@ React + TypeScript で構築し、Atomic Design によるコンポーネント�
 | カテゴリ | 技術 |
 |---|---|
 | フレームワーク | React 19 + TypeScript 5.8 |
-| ビルドツール | Vite 6 |
+| ビルドツール | Vite 8 |
 | ルーティング | React Router v7 |
 | スタイリング | Tailwind CSS 3 |
 | リッチテキスト | TipTap（Headless Editor） |
 | テスト | Vitest + Testing Library |
 | モック | MSW（Mock Service Worker） |
-| リンター | ESLint 9（Flat Config） |
+| リンター | ESLint 10（Flat Config） |
 | コンテナ | Docker（multi-stage build） |
 | CI/CD | Drone CI → AWS ECR |
 | 本番サーバー | Nginx（Alpine） |
@@ -74,7 +74,7 @@ app/src/
 ### ブログ閲覧
 - 記事一覧表示（カテゴリ別フィルタ対応）
 - 記事詳細ページ（リッチテキスト表示）
-- コメント機能（認証ユーザーのみ）
+- コメント機能（認証不要・Cloudflare Turnstile による bot 対策）
 
 <!-- TODO: 記事一覧のスクリーンショット -->
 <!-- ![記事一覧](docs/screenshots/posts.png) -->
