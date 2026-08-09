@@ -67,6 +67,7 @@ steps:
         from_secret: ECR_REGISTRY
       VITE_TURNSTILE_SITE_KEY:
         from_secret: VITE_TURNSTILE_SITE_KEY
+      DOCKER_CONFIG: /drone/src/.docker
     commands:
       - |
         if [ "$DRONE_BRANCH" = "main" ] && [ "$DRONE_BUILD_EVENT" = "push" ]; then
@@ -75,7 +76,6 @@ steps:
             --dockerfile=/drone/src/app/Dockerfile.prod \
             --build-arg VITE_API_BASE_URL=/api \
             --build-arg "VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY" \
-            --docker-config=/drone/src/.docker \
             --destination="$ECR_REGISTRY/go-lilaregard-frontend:$DRONE_COMMIT_SHA" \
             --destination="$ECR_REGISTRY/go-lilaregard-frontend:latest"
         else
