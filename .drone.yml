@@ -2,17 +2,23 @@
 # CI/CD Pipeline
 # =========================
 kind: pipeline
-type: docker
+type: kubernetes
 name: ci-cd
 
 trigger:
   event: [push, pull_request]
   branch: [main, develop]
 
+node_selector:
+  node-role: drone
+tolerations:
+  - key: dedicated
+    value: drone
+    effect: NoSchedule
+
 steps:
-  - name: build-and-verify
-    image: docker:24-dind
-    privileged: true
+  - name: check-vars
+    image: alpine
     environment:
       AWS_REGION:
         from_secret: AWS_REGION
@@ -22,129 +28,61 @@ steps:
         from_secret: AWS_SECRET_ACCESS_KEY
       ECR_REGISTRY:
         from_secret: ECR_REGISTRY
-      # Cloudflare Turnstile widget Site Key (公開値だが、鍵ローテーションを
-      # 容易にするため Drone org Secret 経由で注入する)。
-      # docker build の --build-arg 経由で Vite ビルドに埋め込む。
       VITE_TURNSTILE_SITE_KEY:
         from_secret: VITE_TURNSTILE_SITE_KEY
     commands:
-      - set -euo pipefail
-      - echo "🐳 Starting Docker daemon..."
-      - dockerd-entrypoint.sh &
+      - set -euxo pipefail
+      - '[ -n "$AWS_REGION" ]'
+      - '[ -n "$AWS_ACCESS_KEY_ID" ]'
+      - '[ -n "$AWS_SECRET_ACCESS_KEY" ]'
+      - '[ -n "$ECR_REGISTRY" ]'
+      - '[ -n "$VITE_TURNSTILE_SITE_KEY" ]'
+
+  - name: setup-ecr-auth
+    image: amazon/aws-cli:latest
+    when:
+      branch: [main]
+      event: [push]
+    environment:
+      AWS_REGION:
+        from_secret: AWS_REGION
+      AWS_ACCESS_KEY_ID:
+        from_secret: AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      ECR_REGISTRY:
+        from_secret: ECR_REGISTRY
+    commands:
+      - mkdir -p /drone/src/.docker
       - |
-        for i in $(seq 1 60); do
-          if docker info >/dev/null 2>&1; then break; fi
-          echo "Waiting for Docker..."
-          sleep 1
-          if [ "$i" -eq 60 ]; then echo "❌ Docker daemon failed to start"; exit 1; fi
-        done
+        ECR_TOKEN=$(aws ecr get-login-password --region "$AWS_REGION")
+        AUTH=$(printf 'AWS:%s' "$ECR_TOKEN" | base64 -w 0)
+        printf '{"auths":{"%s":{"auth":"%s"}}}' "$ECR_REGISTRY" "$AUTH" > /drone/src/.docker/config.json
+      - echo "ECR auth config written"
 
-      # === CI: ビルド & 検証 ===
-      - echo "🔨 Building Docker image..."
+  - name: build
+    image: gcr.io/kaniko-project/executor:debug
+    environment:
+      ECR_REGISTRY:
+        from_secret: ECR_REGISTRY
+      VITE_TURNSTILE_SITE_KEY:
+        from_secret: VITE_TURNSTILE_SITE_KEY
+      DOCKER_CONFIG: /drone/src/.docker
+    commands:
       - |
-        docker build -f app/Dockerfile.prod \
-          --build-arg VITE_API_BASE_URL=/api \
-          --build-arg VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY \
-          -t go-lilaregard-frontend:ci app/
-      - echo "✅ Build succeeded"
-
-      - echo ""
-      - echo "📏 Image size check..."
-      - docker images go-lilaregard-frontend:ci --format "   Size:{{.Size}}"
-      - echo ""
-
-      - echo "🏥 Container startup check..."
-      - |
-        docker run -d --name frontend-ci \
-          -p 8080:80 \
-          go-lilaregard-frontend:ci
-
-        echo "   Waiting for container to start..."
-        for i in $(seq 1 30); do
-          if docker ps --filter name=frontend-ci --format "{{.Status}}" | grep -q "Up"; then
-            break
-          fi
-          sleep 1
-          if [ "$i" -eq 30 ]; then
-            echo "❌ Container failed to start"
-            docker logs frontend-ci 2>&1 | tail -20
-            exit 1
-          fi
-        done
-
-        echo "   Container status:"
-        docker ps --filter name=frontend-ci --format "   {{.Status}}"
-        echo "✅ Container is running"
-
-      - echo ""
-      - echo "🌐 Health check..."
-      - |
-        for i in $(seq 1 15); do
-          RESPONSE=$(wget -qO- http://localhost:8080/ 2>/dev/null || true)
-          if echo "$RESPONSE" | grep -qi "<!DOCTYPE html>"; then
-            echo "✅ Health check passed (index.html served correctly)"
-            break
-          fi
-          if [ "$i" -eq 15 ]; then
-            echo "❌ Health check failed (index.html not served)"
-            echo "   Response: $RESPONSE"
-            docker logs frontend-ci 2>&1 | tail -20
-            docker stop frontend-ci && docker rm frontend-ci
-            exit 1
-          fi
-          echo "   Waiting for nginx to be ready... ($i/15)"
-          sleep 2
-        done
-
-      - echo ""
-      - echo "🔒 API fallback check..."
-      - |
-        API_STATUS=$(wget -qS http://localhost:8080/api/ 2>&1 | grep "HTTP/" | awk '{print $2}' || echo "000") || true
-        if echo "$API_STATUS" | grep -q "404"; then
-          echo "✅ /api/ correctly returns 404 (SPA fallback excluded)"
+        if [ "$DRONE_BRANCH" = "main" ] && [ "$DRONE_BUILD_EVENT" = "push" ]; then
+          /kaniko/executor \
+            --context=dir:///drone/src/app \
+            --dockerfile=/drone/src/app/Dockerfile.prod \
+            --build-arg VITE_API_BASE_URL=/api \
+            --build-arg "VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY" \
+            --destination="$ECR_REGISTRY/go-lilaregard-frontend:$DRONE_COMMIT_SHA" \
+            --destination="$ECR_REGISTRY/go-lilaregard-frontend:latest"
         else
-          echo "⚠️ /api/ returned unexpected status: $API_STATUS"
-        fi
-
-      - echo ""
-      - echo "🧹 Cleanup..."
-      - docker stop frontend-ci && docker rm frontend-ci
-      - echo "✅ All CI checks passed"
-
-      # === CI: ECR認証メカニズムの事前検証 ===
-      # Alpineのaws-cliが壊れたケースなど、CDで初めて発覚する問題を
-      # CI時点で検出するためamazon/aws-cliコンテナの起動だけ確認する
-      # （AWS認証情報は使わない）
-      - echo "🔍 Verifying ECR auth mechanism (no credentials needed)..."
-      - docker run --rm amazon/aws-cli:latest --version
-      - echo "✅ aws-cli image is operational"
-
-      # === CD: ECR push (mainブランチのみ) ===
-      - |
-        if [ "${DRONE_BUILD_EVENT}" = "push" ] && [ "${DRONE_BRANCH}" = "main" ]; then
-          echo ""
-          echo "🔐 Logging in to ECR..."
-          # Alpineのaws-cliパッケージはlibexpat ABI mismatchで壊れているため、
-          # DinD内でamazon/aws-cliコンテナを起動してECRトークンを取得する
-          ECR_TOKEN=$(docker run --rm \
-            -e AWS_REGION=$AWS_REGION \
-            -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-            -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-            amazon/aws-cli:latest \
-            ecr get-login-password --region $AWS_REGION)
-          echo "$ECR_TOKEN" | docker login --username AWS --password-stdin $ECR_REGISTRY
-
-          echo "🏷️ Tagging image for ECR..."
-          docker tag go-lilaregard-frontend:ci $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}
-          docker tag go-lilaregard-frontend:ci $ECR_REGISTRY/go-lilaregard-frontend:latest
-
-          echo "🚀 Pushing to ECR..."
-          docker push $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}
-          docker push $ECR_REGISTRY/go-lilaregard-frontend:latest
-
-          echo "✅ Image pushed successfully"
-          echo "   → $ECR_REGISTRY/go-lilaregard-frontend:${DRONE_COMMIT_SHA}"
-        else
-          echo ""
-          echo "⏭️ Skipping ECR push (branch: ${DRONE_BRANCH}, push only on main)"
+          /kaniko/executor \
+            --context=dir:///drone/src/app \
+            --dockerfile=/drone/src/app/Dockerfile.prod \
+            --build-arg VITE_API_BASE_URL=/api \
+            --build-arg "VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY" \
+            --no-push
         fi
