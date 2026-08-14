@@ -1,0 +1,72 @@
+name: AI Approve Bridge
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  approve:
+    # Claude または Codex の「問題なし」コメントをトリガーに両方を確認して Approve する
+    if: |
+      github.event.issue.pull_request != null &&
+      (
+        (github.event.comment.user.login == 'chatgpt-codex-connector[bot]' &&
+         contains(github.event.comment.body, 'Didn''t find any major issues')) ||
+        (github.event.comment.user.login == 'claude[bot]' &&
+         (contains(github.event.comment.body, '重大な問題は見当たりませんでした') ||
+          contains(github.event.comment.body, '問題なし。承認します。')))
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check both AIs said no issues
+        id: check
+        run: |
+          PR_NUM="${{ github.event.issue.number }}"
+          REPO="${{ github.repository }}"
+
+          # Claude: 正式 Approve または「問題なし」コメント
+          CLAUDE_OK=$(gh api "repos/$REPO/pulls/$PR_NUM/reviews" \
+            --jq '[.[] | select(.user.login == "claude[bot]" and .state == "APPROVED")] | length')
+
+          if [ "$CLAUDE_OK" -eq 0 ]; then
+            CLAUDE_OK=$(gh api "repos/$REPO/issues/$PR_NUM/comments" \
+              --jq '[.[] | select(
+                .user.login == "claude[bot]" and
+                (.body | (
+                  contains("重大な問題は見当たりませんでした") or
+                  contains("問題なし。承認します。") or
+                  contains("重大な問題は見つかりませんでした")
+                ))
+              )] | length')
+          fi
+
+          # Codex: 「Didn't find any major issues」コメント
+          CODEX_OK=$(gh api "repos/$REPO/issues/$PR_NUM/comments" \
+            --jq '[.[] | select(
+              .user.login == "chatgpt-codex-connector[bot]" and
+              (.body | contains("Didn'\''t find any major issues"))
+            )] | length')
+
+          echo "claude_ok=$CLAUDE_OK"
+          echo "codex_ok=$CODEX_OK"
+
+          if [ "$CLAUDE_OK" -gt 0 ] && [ "$CODEX_OK" -gt 0 ]; then
+            echo "both_ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "both_ok=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Approve PR
+        if: steps.check.outputs.both_ok == 'true'
+        run: |
+          gh pr review "${{ github.event.issue.number }}" \
+            --repo "${{ github.repository }}" \
+            --approve \
+            --body "Claude + Codex レビュー完了：両 AI が問題なしと判定。承認します。"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
