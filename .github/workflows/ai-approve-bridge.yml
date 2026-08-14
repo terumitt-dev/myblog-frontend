@@ -16,40 +16,41 @@ jobs:
         (github.event.comment.user.login == 'chatgpt-codex-connector[bot]' &&
          contains(github.event.comment.body, 'Didn''t find any major issues')) ||
         (github.event.comment.user.login == 'claude[bot]' &&
-         (contains(github.event.comment.body, '重大な問題は見当たりませんでした') ||
-          contains(github.event.comment.body, '問題なし。承認します。')))
+         contains(github.event.comment.body, '重大な問題は見当たりませんでした'))
       )
     runs-on: ubuntu-latest
     steps:
-      - name: Check both AIs said no issues
+      - name: Check both AIs said no issues after latest commit
         id: check
         run: |
           PR_NUM="${{ github.event.issue.number }}"
           REPO="${{ github.repository }}"
 
-          # Claude: 正式 Approve または「問題なし」コメント
-          CLAUDE_OK=$(gh api "repos/$REPO/pulls/$PR_NUM/reviews" \
-            --jq '[.[] | select(.user.login == "claude[bot]" and .state == "APPROVED")] | length')
+          # 最新コミットの push 時刻を取得（これより前のコメントは無視）
+          HEAD_SHA=$(gh api "repos/$REPO/pulls/$PR_NUM" --jq .head.sha)
+          COMMIT_DATE=$(gh api "repos/$REPO/commits/$HEAD_SHA" --jq .commit.committer.date)
 
-          if [ "$CLAUDE_OK" -eq 0 ]; then
-            CLAUDE_OK=$(gh api "repos/$REPO/issues/$PR_NUM/comments" \
-              --jq '[.[] | select(
-                .user.login == "claude[bot]" and
-                (.body | (
-                  contains("重大な問題は見当たりませんでした") or
-                  contains("問題なし。承認します。") or
-                  contains("重大な問題は見つかりませんでした")
-                ))
-              )] | length')
-          fi
+          # Claude: 最新コミット以降の「問題なし」コメントのみ対象
+          CLAUDE_OK=$(gh api "repos/$REPO/issues/$PR_NUM/comments" \
+            --jq --arg since "$COMMIT_DATE" '[.[] | select(
+              .user.login == "claude[bot]" and
+              .created_at >= $since and
+              (.body | (
+                contains("重大な問題は見当たりませんでした") or
+                contains("重大な問題は見つかりませんでした")
+              ))
+            )] | length')
 
-          # Codex: 「Didn't find any major issues」コメント
+          # Codex: 最新コミット以降の「Didn't find any major issues」コメントのみ対象
           CODEX_OK=$(gh api "repos/$REPO/issues/$PR_NUM/comments" \
-            --jq '[.[] | select(
+            --jq --arg since "$COMMIT_DATE" '[.[] | select(
               .user.login == "chatgpt-codex-connector[bot]" and
+              .created_at >= $since and
               (.body | contains("Didn'\''t find any major issues"))
             )] | length')
 
+          echo "head_sha=$HEAD_SHA"
+          echo "commit_date=$COMMIT_DATE"
           echo "claude_ok=$CLAUDE_OK"
           echo "codex_ok=$CODEX_OK"
 
