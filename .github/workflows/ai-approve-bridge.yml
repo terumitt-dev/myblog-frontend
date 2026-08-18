@@ -6,6 +6,8 @@ on:
 
 permissions:
   pull-requests: write
+  issues: read
+  contents: read
 
 jobs:
   approve:
@@ -31,7 +33,7 @@ jobs:
           COMMIT_DATE=$(gh api "repos/$REPO/commits/$HEAD_SHA" --jq .commit.committer.date)
 
           # Claude: 最新コミット以降の「問題なし」コメントのみ対象
-          CLAUDE_OK=$(gh api "repos/$REPO/issues/$PR_NUM/comments" \
+          CLAUDE_OK=$(gh api "repos/$REPO/issues/$PR_NUM/comments" -F per_page=100 --paginate \
             --jq --arg since "$COMMIT_DATE" '[.[] | select(
               .user.login == "claude[bot]" and
               .created_at >= $since and
@@ -42,7 +44,7 @@ jobs:
             )] | length')
 
           # Codex: 最新コミット以降の「Didn't find any major issues」コメントのみ対象
-          CODEX_OK=$(gh api "repos/$REPO/issues/$PR_NUM/comments" \
+          CODEX_OK=$(gh api "repos/$REPO/issues/$PR_NUM/comments" -F per_page=100 --paginate \
             --jq --arg since "$COMMIT_DATE" '[.[] | select(
               .user.login == "chatgpt-codex-connector[bot]" and
               .created_at >= $since and
