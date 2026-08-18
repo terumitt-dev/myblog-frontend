@@ -33,7 +33,6 @@ jobs:
           COMMIT_DATE=$(gh api "repos/$REPO/commits/$HEAD_SHA" --jq .commit.committer.date)
 
           # Claude: 最新コミット以降の「問題なし」コメントのみ対象
-          # --paginate は直接 jq にパイプして全ページをマージした単一配列として処理する
           CLAUDE_OK=$(gh api "repos/$REPO/issues/$PR_NUM/comments" \
             --method GET -F per_page=100 --paginate \
             | jq --arg since "$COMMIT_DATE" \
@@ -56,8 +55,7 @@ jobs:
               (.body | contains("Didn'\''t find any major issues"))
             )] | length')
 
-          echo "head_sha=$HEAD_SHA"
-          echo "commit_date=$COMMIT_DATE"
+          echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
           echo "claude_ok=$CLAUDE_OK"
           echo "codex_ok=$CODEX_OK"
 
@@ -72,8 +70,18 @@ jobs:
       - name: Approve PR
         if: steps.check.outputs.both_ok == 'true'
         run: |
-          gh pr review "${{ github.event.issue.number }}" \
-            --repo "${{ github.repository }}" \
+          PR_NUM="${{ github.event.issue.number }}"
+          REPO="${{ github.repository }}"
+
+          # TOCTOU 対策: check 時点から HEAD が変わっていないか再確認
+          CURRENT_SHA=$(gh api "repos/$REPO/pulls/$PR_NUM" --jq .head.sha)
+          if [ "$CURRENT_SHA" != "${{ steps.check.outputs.head_sha }}" ]; then
+            echo "HEAD changed after review check. Skipping approval."
+            exit 0
+          fi
+
+          gh pr review "$PR_NUM" \
+            --repo "$REPO" \
             --approve \
             --body "Claude + Codex レビュー完了：両 AI が問題なしと判定。承認します。"
         env:
