@@ -7,7 +7,6 @@ on:
 permissions:
   pull-requests: write
   issues: read
-  contents: read
 
 jobs:
   approve:
@@ -23,40 +22,39 @@ jobs:
       )
     runs-on: ubuntu-latest
     steps:
-      - name: Check both AIs said no issues after latest commit
+      - name: Check both AIs reviewed the current HEAD
         id: check
         run: |
           PR_NUM="${{ github.event.issue.number }}"
           REPO="${{ github.repository }}"
 
-          # 最新コミットの時刻を取得
           HEAD_SHA=$(gh api "repos/$REPO/pulls/$PR_NUM" --jq .head.sha)
-          COMMIT_DATE=$(gh api "repos/$REPO/commits/$HEAD_SHA" --jq .commit.committer.date)
+          SHA_SHORT="${HEAD_SHA:0:10}"
 
-          # Claude: 最新コミット以降の「問題なし」コメントのみ対象
+          # Claude: HEAD SHA を含む「問題なし」コメントのみ対象
           CLAUDE_OK=$(gh api "repos/$REPO/issues/$PR_NUM/comments" \
             --method GET -F per_page=100 --paginate \
-            | jq --arg since "$COMMIT_DATE" \
+            | jq --arg sha "$SHA_SHORT" \
             '[.[] | select(
               .user.login == "claude[bot]" and
-              .created_at >= $since and
               (.body | (
-                contains("重大な問題は見当たりませんでした") or
-                contains("重大な問題は見つかりませんでした")
+                (contains("重大な問題は見当たりませんでした") or contains("重大な問題は見つかりませんでした")) and
+                contains($sha)
               ))
             )] | length')
 
-          # Codex: 最新コミット以降の「Didn't find any major issues」コメントのみ対象
+          # Codex: HEAD SHA を含む「Didn't find any major issues」コメントのみ対象
+          # Codex は「Reviewed commit: XXXXXXXXXX」を自動的にコメントに含める
           CODEX_OK=$(gh api "repos/$REPO/issues/$PR_NUM/comments" \
             --method GET -F per_page=100 --paginate \
-            | jq --arg since "$COMMIT_DATE" \
+            | jq --arg sha "$SHA_SHORT" \
             '[.[] | select(
               .user.login == "chatgpt-codex-connector[bot]" and
-              .created_at >= $since and
-              (.body | contains("Didn'\''t find any major issues"))
+              (.body | (contains("Didn'\''t find any major issues") and contains($sha)))
             )] | length')
 
           echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "sha_short=$SHA_SHORT"
           echo "claude_ok=$CLAUDE_OK"
           echo "codex_ok=$CODEX_OK"
 
