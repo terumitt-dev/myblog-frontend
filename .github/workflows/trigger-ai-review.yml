@@ -1,4 +1,4 @@
-name: Trigger AI Review
+name: AI Review
 
 on:
   issue_comment:
@@ -18,92 +18,17 @@ permissions:
   actions: read
 
 jobs:
-  # ──────────────────────────────────────
-  # Qodo: /review /describe /improve
-  # ──────────────────────────────────────
-  check-team-member-qodo:
+  # @claude メンション時の手動トリガー（org メンバー・コラボレーター限定）
+  claude-mention:
     if: |
-      github.event_name == 'issue_comment' && (
-        github.event.comment.body == '/review' ||
-        github.event.comment.body == '/describe' ||
-        github.event.comment.body == '/improve'
-      )
-    runs-on: ubuntu-latest
-    outputs:
-      allowed: ${{ steps.check.outputs.allowed }}
-    steps:
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
-      - name: Check if commenter is in team
-        id: check
-        run: |
-          COMMENTER=${{ github.event.comment.user.login }}
-
-          TEAM_MEMBERS=$(curl -s -H "Authorization: Bearer ${{ secrets.TEAM_PAT }}" \
-            https://api.github.com/orgs/terumitt-dev/teams/ai-reviewers/members)
-
-          LOGINS=$(echo "$TEAM_MEMBERS" | jq -r '.[].login')
-
-          if echo "$LOGINS" | grep -q "^$COMMENTER$"; then
-            echo "allowed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "allowed=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  ai-review:
-    needs: check-team-member-qodo
-    if: needs.check-team-member-qodo.outputs.allowed == 'true'
-    uses: terumitt-dev/github_actions_ci-cd/.github/workflows/reusable-ci.yml@main
-    with:
-      pr_number: ${{ github.event.issue.number }}
-      command: ${{ github.event.comment.body }}
-      target_repo: ${{ github.repository }}
-    secrets:
-      OPENAI_KEY: ${{ secrets.OPENAI_KEY }}
-
-  # ──────────────────────────────────────
-  # Claude Code: @claude mentions
-  # ──────────────────────────────────────
-  check-team-member-claude:
-    if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
-    runs-on: ubuntu-latest
-    outputs:
-      allowed: ${{ steps.check.outputs.allowed }}
-    steps:
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
-      - name: Check if commenter is in team
-        id: check
-        run: |
-          EVENT_NAME="${{ github.event_name }}"
-          if [ "$EVENT_NAME" = "issues" ]; then
-            COMMENTER=${{ github.event.issue.user.login }}
-          elif [ "$EVENT_NAME" = "pull_request_review" ]; then
-            COMMENTER=${{ github.event.review.user.login }}
-          else
-            COMMENTER=${{ github.event.comment.user.login }}
-          fi
-
-          TEAM_MEMBERS=$(curl -s -H "Authorization: Bearer ${{ secrets.TEAM_PAT }}" \
-            https://api.github.com/orgs/terumitt-dev/teams/ai-reviewers/members)
-
-          LOGINS=$(echo "$TEAM_MEMBERS" | jq -r '.[].login')
-
-          if echo "$LOGINS" | grep -q "^$COMMENTER$"; then
-            echo "allowed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "allowed=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  claude-code:
-    needs: check-team-member-claude
-    if: needs.check-team-member-claude.outputs.allowed == 'true'
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.review.author_association)) ||
+      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')) &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association))
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
