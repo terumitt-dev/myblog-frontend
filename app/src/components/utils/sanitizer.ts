@@ -132,6 +132,52 @@ export const sanitizeHtml = (html: string): string => {
       }
     });
 
+    // プレーンテキストの URL を <a> タグに変換（既存リンク・pre・code 内は除外）
+    const URL_RE = /https?:\/\/[^\s<>"'()\[\]]+/g;
+    const SKIP_TAGS = new Set(["A", "PRE", "CODE"]);
+
+    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        let el = node.parentElement;
+        while (el && el !== doc.body) {
+          if (SKIP_TAGS.has(el.tagName)) return NodeFilter.FILTER_REJECT;
+          el = el.parentElement;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+
+    const textNodes: Text[] = [];
+    let tn: Node | null;
+    while ((tn = walker.nextNode())) textNodes.push(tn as Text);
+
+    for (const textNode of textNodes) {
+      const text = textNode.textContent ?? "";
+      if (!URL_RE.test(text)) { URL_RE.lastIndex = 0; continue; }
+      URL_RE.lastIndex = 0;
+
+      const frag = doc.createDocumentFragment();
+      let last = 0;
+      let m: RegExpExecArray | null;
+      while ((m = URL_RE.exec(text)) !== null) {
+        // 末尾の句読点を除去
+        const raw = m[0].replace(/[.,!?:;)\]]+$/, "");
+        if (m.index > last) frag.appendChild(doc.createTextNode(text.slice(last, m.index)));
+        const a = doc.createElement("a");
+        a.href = raw;
+        a.textContent = raw;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        frag.appendChild(a);
+        last = m.index + raw.length;
+        // 除去した末尾文字をテキストノードとして残す
+        const trailing = m[0].slice(raw.length);
+        if (trailing) frag.appendChild(doc.createTextNode(trailing));
+      }
+      if (last < text.length) frag.appendChild(doc.createTextNode(text.slice(last)));
+      textNode.parentNode?.replaceChild(frag, textNode);
+    }
+
     return doc.body.innerHTML;
   } catch (error) {
     console.error("HTML sanitization error:", error);
