@@ -100,7 +100,7 @@ export const sanitizeHtml = (html: string): string => {
     // 全角句読点（。、！？」』】）も除外して日本語文末の取り込みを防ぐ
     // 全角句読点・日本語文字（ひらがな・カタカナ・漢字）を除外して
     // URL直後の助詞等（「を参照」「のページ」）が href に取り込まれるのを防ぐ
-    const URL_RE = /https?:\/\/[^\s<>"'()\[\]。、！？「」『』【】（）぀-ゟ゠-ヿ一-鿿]+/g;
+    const URL_RE = /https?:\/\/[^\s<>"'()\[\]。、！？「」『』【】（）぀-ゟ゠-ヿ一-鿿]+/gi;
     const TRAILING_PUNCT = /[.,!?:;。、！？]+$/;
     const SKIP_TAGS = new Set(["A", "PRE", "CODE"]);
 
