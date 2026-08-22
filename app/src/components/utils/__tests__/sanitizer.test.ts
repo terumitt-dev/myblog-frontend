@@ -220,6 +220,18 @@ describe("sanitizeHtml", () => {
       expect(result).toContain("href=\"https://example.com/foo'\"");
     });
 
+    it("引用符+句読点の組み合わせで句読点が href に残らない", () => {
+      const result = sanitizeHtml("<p>'https://example.com.' を参照</p>");
+      expect(result).toContain('href="https://example.com"');
+      expect(result).not.toContain('href="https://example.com."');
+    });
+
+    it("スマート引用符で囲まれた URL は引用符を href に含めない", () => {
+      const result = sanitizeHtml("<p>“https://example.com” を参照</p>");
+      expect(result).toContain('href="https://example.com"');
+      expect(result).not.toContain("href=\"https://example.com”\"");
+    });
+
     it("URL直後に空白なしで助詞が続いても日本語がhrefに取り込まれない", () => {
       const result = sanitizeHtml("<p>https://example.comを参照してください</p>");
       expect(result).toContain('href="https://example.com"');
