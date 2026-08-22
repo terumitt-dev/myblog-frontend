@@ -208,7 +208,7 @@ const PostDetail = () => {
             </span>
             <time
               dateTime={blog.created_at}
-              className="text-sm text-white/70 dark:text-gray-400"
+              className="text-sm text-white dark:text-gray-400"
             >
               {new Date(blog.created_at).toLocaleDateString("ja-JP", {
                 year: "numeric",

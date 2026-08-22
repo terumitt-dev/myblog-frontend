@@ -188,6 +188,19 @@ describe("sanitizeHtml", () => {
       expect(result).toContain('href="https://example.com"');
       expect(result).not.toContain('href="https://example.com、"');
     });
+
+    it("URL直後に空白なしで助詞が続いても日本語がhrefに取り込まれない", () => {
+      const result = sanitizeHtml("<p>https://example.comを参照してください</p>");
+      expect(result).toContain('href="https://example.com"');
+      expect(result).not.toContain('href="https://example.comを');
+      expect(result).toContain("を参照してください");
+    });
+
+    it("URL直後にひらがな・漢字が続いてもURLに含まれない", () => {
+      const result = sanitizeHtml("<p>https://example.com/pageのページをご覧ください</p>");
+      expect(result).toContain('href="https://example.com/page"');
+      expect(result).not.toContain('href="https://example.com/pageの');
+    });
   });
 });
 

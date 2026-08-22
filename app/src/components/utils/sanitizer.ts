@@ -98,7 +98,9 @@ export const sanitizeHtml = (html: string): string => {
     // プレーンテキストの URL を <a> タグに変換（既存リンク・pre・code 内は除外）
     // スキーム検証ループより先に実行することで、生成した <a> も検証対象に含める
     // 全角句読点（。、！？」』】）も除外して日本語文末の取り込みを防ぐ
-    const URL_RE = /https?:\/\/[^\s<>"'()\[\]。、！？」』】）]+/g;
+    // 全角句読点・日本語文字（ひらがな・カタカナ・漢字）を除外して
+    // URL直後の助詞等（「を参照」「のページ」）が href に取り込まれるのを防ぐ
+    const URL_RE = /https?:\/\/[^\s<>"'()\[\]。、！？」』】）぀-ゟ゠-ヿ一-鿿]+/g;
     const TRAILING_PUNCT = /[.,!?:;。、！？]+$/;
     const SKIP_TAGS = new Set(["A", "PRE", "CODE"]);
 
