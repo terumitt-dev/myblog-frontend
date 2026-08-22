@@ -95,7 +95,66 @@ export const sanitizeHtml = (html: string): string => {
     const allowedLinkProtocols = new Set(["http:", "https:", "mailto:"]);
     const allowedImageProtocols = new Set(["http:", "https:"]);
 
+    // プレーンテキストの URL を <a> タグに変換（既存リンク・pre・code 内は除外）
+    // スキーム検証ループより先に実行することで、生成した <a> も検証対象に含める
+    // 全角句読点（。、！？」』】）も除外して日本語文末の取り込みを防ぐ
+    // 全角句読点・日本語文字（ひらがな・カタカナ・漢字）を除外して
+    // URL直後の助詞等（「を参照」「のページ」）が href に取り込まれるのを防ぐ
+    // ' はパスに含まれる合法な文字（例: People's_Republic）なので除外しない
+    // スマート引用符（U+201C/D " " U+2018/9 ' '）は非ASCII で URL に使えないため除外
+    const URL_RE = /https?:\/\/[^\s<>"()\[\]。、！？「」『』【】（）“”‘’぀-ゟ゠-ヿ一-鿿]+/gi;
+    // . , のみ無条件削除。' は URL が引用符で囲まれている場合のみ後処理で除去
+    const TRAILING_PUNCT = /[.,。、]+$/;
+    const SKIP_TAGS = new Set(["A", "PRE", "CODE"]);
+
+    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        let el = node.parentElement;
+        while (el && el !== doc.body) {
+          if (SKIP_TAGS.has(el.tagName)) return NodeFilter.FILTER_REJECT;
+          el = el.parentElement;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+
+    const textNodes: Text[] = [];
+    let tn: Node | null;
+    while ((tn = walker.nextNode())) textNodes.push(tn as Text);
+
+    for (const textNode of textNodes) {
+      const text = textNode.textContent ?? "";
+      if (!URL_RE.test(text)) { URL_RE.lastIndex = 0; continue; }
+      URL_RE.lastIndex = 0;
+
+      const frag = doc.createDocumentFragment();
+      let last = 0;
+      let m: RegExpExecArray | null;
+      while ((m = URL_RE.exec(text)) !== null) {
+        let raw = m[0].replace(TRAILING_PUNCT, "");
+        // URL が単一引用符で囲まれている場合のみ末尾の ' を除去し、
+        // 除去後に再度 TRAILING_PUNCT を適用（例: 'https://example.com.' の . を除く）
+        if (raw.endsWith("'") && m.index > 0 && text[m.index - 1] === "'") {
+          raw = raw.slice(0, -1).replace(TRAILING_PUNCT, "");
+        }
+        if (m.index > last) frag.appendChild(doc.createTextNode(text.slice(last, m.index)));
+        const a = doc.createElement("a");
+        a.href = raw;
+        a.textContent = raw;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        frag.appendChild(a);
+        // trailing を frag に追加済みのため last はマッチ全体の終端まで進める
+        last = m.index + m[0].length;
+        const trailing = m[0].slice(raw.length);
+        if (trailing) frag.appendChild(doc.createTextNode(trailing));
+      }
+      if (last < text.length) frag.appendChild(doc.createTextNode(text.slice(last)));
+      textNode.parentNode?.replaceChild(frag, textNode);
+    }
+
     // リンクのスキーム検証 + target="_blank" に noopener noreferrer を強制付与
+    // 自動リンク化で生成した <a> も含めて検証する
     doc.querySelectorAll("a[href]").forEach((anchor) => {
       try {
         const href = anchor.getAttribute("href") ?? "";
