@@ -189,6 +189,21 @@ describe("sanitizeHtml", () => {
       expect(result).not.toContain('href="https://example.com、"');
     });
 
+    it("HTTPS:// など大文字スキームもリンク化される", () => {
+      const result = sanitizeHtml("<p>HTTPS://example.com を参照</p>");
+      expect(result).toContain('href="HTTPS://example.com"');
+    });
+
+    it("URL パス末尾の ! はリンクに含める（文末句読点ではない）", () => {
+      const result = sanitizeHtml("<p>https://example.com/path! の詳細</p>");
+      expect(result).toContain('href="https://example.com/path!"');
+    });
+
+    it("URL クエリ末尾の ? はリンクに含める", () => {
+      const result = sanitizeHtml("<p>https://example.com/?q=foo?</p>");
+      expect(result).toContain('href="https://example.com/?q=foo?"');
+    });
+
     it("URL直後に空白なしで助詞が続いても日本語がhrefに取り込まれない", () => {
       const result = sanitizeHtml("<p>https://example.comを参照してください</p>");
       expect(result).toContain('href="https://example.com"');
