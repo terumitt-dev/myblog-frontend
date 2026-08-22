@@ -160,17 +160,33 @@ describe("sanitizeHtml", () => {
       expect(result).toContain("https://example.com");
     });
 
-    it("末尾の句読点は URL に含めない", () => {
+    it("末尾の半角句読点は URL に含めない（句読点が重複しない）", () => {
       const result = sanitizeHtml("<p>詳しくは https://example.com/page を見てください。</p>");
       expect(result).toContain('href="https://example.com/page"');
-      // 末尾の句点はリンク外のテキストとして残る
       expect(result).toContain("。");
+      // href に句点が入っていないことを確認
+      expect(result).not.toContain('href="https://example.com/page."');
     });
 
-    it("末尾のカンマは URL に含めない", () => {
+    it("カンマ区切りの複数URLで句読点が重複しない", () => {
       const result = sanitizeHtml("<p>https://example.com, https://example.org の2つ</p>");
       expect(result).toContain('href="https://example.com"');
       expect(result).toContain('href="https://example.org"');
+      // カンマが二重にならないことを確認
+      expect(result).not.toContain(",,");
+    });
+
+    it("全角句読点（。）が URL に含まれない", () => {
+      const result = sanitizeHtml("<p>詳しくはhttps://example.com。</p>");
+      expect(result).toContain('href="https://example.com"');
+      expect(result).not.toContain('href="https://example.com。"');
+      expect(result).toContain("。");
+    });
+
+    it("全角句読点（、）が URL に含まれない", () => {
+      const result = sanitizeHtml("<p>https://example.com、次に進む</p>");
+      expect(result).toContain('href="https://example.com"');
+      expect(result).not.toContain('href="https://example.com、"');
     });
   });
 });

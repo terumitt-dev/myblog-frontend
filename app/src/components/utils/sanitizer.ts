@@ -97,7 +97,9 @@ export const sanitizeHtml = (html: string): string => {
 
     // プレーンテキストの URL を <a> タグに変換（既存リンク・pre・code 内は除外）
     // スキーム検証ループより先に実行することで、生成した <a> も検証対象に含める
-    const URL_RE = /https?:\/\/[^\s<>"'()\[\]]+/g;
+    // 全角句読点（。、！？」』】）も除外して日本語文末の取り込みを防ぐ
+    const URL_RE = /https?:\/\/[^\s<>"'()\[\]。、！？」』】）]+/g;
+    const TRAILING_PUNCT = /[.,!?:;。、！？]+$/;
     const SKIP_TAGS = new Set(["A", "PRE", "CODE"]);
 
     const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
@@ -124,8 +126,7 @@ export const sanitizeHtml = (html: string): string => {
       let last = 0;
       let m: RegExpExecArray | null;
       while ((m = URL_RE.exec(text)) !== null) {
-        // URL_RE の文字クラスで () [] は既に除外済みのため、末尾は句読点のみ除去
-        const raw = m[0].replace(/[.,!?:;]+$/, "");
+        const raw = m[0].replace(TRAILING_PUNCT, "");
         if (m.index > last) frag.appendChild(doc.createTextNode(text.slice(last, m.index)));
         const a = doc.createElement("a");
         a.href = raw;
@@ -133,8 +134,8 @@ export const sanitizeHtml = (html: string): string => {
         a.target = "_blank";
         a.rel = "noopener noreferrer";
         frag.appendChild(a);
-        last = m.index + raw.length;
-        // 除去した末尾文字をテキストノードとして残す
+        // trailing を frag に追加済みのため last はマッチ全体の終端まで進める
+        last = m.index + m[0].length;
         const trailing = m[0].slice(raw.length);
         if (trailing) frag.appendChild(doc.createTextNode(trailing));
       }
