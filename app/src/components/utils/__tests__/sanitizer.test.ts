@@ -128,6 +128,51 @@ describe("sanitizeHtml", () => {
     const result = sanitizeHtml(input);
     expect(result).toContain("<blockquote>引用テキスト</blockquote>");
   });
+
+  describe("プレーンテキストURL自動リンク化", () => {
+    it("http URLをリンクに変換する", () => {
+      const result = sanitizeHtml("<p>https://example.com を参照</p>");
+      expect(result).toContain('<a href="https://example.com"');
+      expect(result).toContain('target="_blank"');
+      expect(result).toContain("noopener");
+      expect(result).toContain("noreferrer");
+    });
+
+    it("既存の <a> タグ内の URL は二重リンク化しない", () => {
+      const input = '<a href="https://example.com">https://example.com</a>';
+      const result = sanitizeHtml(input);
+      // <a> が1つだけであることを確認（二重ネストにならない）
+      const matches = result.match(/<a /g) ?? [];
+      expect(matches.length).toBe(1);
+    });
+
+    it("<pre> 内の URL はリンク化しない", () => {
+      const input = "<pre>https://example.com</pre>";
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain("<a ");
+      expect(result).toContain("https://example.com");
+    });
+
+    it("<code> 内の URL はリンク化しない", () => {
+      const input = "<code>https://example.com</code>";
+      const result = sanitizeHtml(input);
+      expect(result).not.toContain("<a ");
+      expect(result).toContain("https://example.com");
+    });
+
+    it("末尾の句読点は URL に含めない", () => {
+      const result = sanitizeHtml("<p>詳しくは https://example.com/page を見てください。</p>");
+      expect(result).toContain('href="https://example.com/page"');
+      // 末尾の句点はリンク外のテキストとして残る
+      expect(result).toContain("。");
+    });
+
+    it("末尾のカンマは URL に含めない", () => {
+      const result = sanitizeHtml("<p>https://example.com, https://example.org の2つ</p>");
+      expect(result).toContain('href="https://example.com"');
+      expect(result).toContain('href="https://example.org"');
+    });
+  });
 });
 
 describe("sanitizeInput", () => {
