@@ -41,10 +41,10 @@ const Login = () => {
     <Layout>
       <div className="max-w-md mx-auto p-4 sm:p-6 lg:p-8 space-y-4">
         <div className="text-center mb-8">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white">
             ログイン
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
+          <p className="text-white/80 dark:text-gray-300 mt-2">
             管理画面にアクセスするにはログインが必要です
           </p>
         </div>
@@ -63,7 +63,7 @@ const Login = () => {
           <div className="space-y-2">
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              className="block text-sm font-medium text-white dark:text-gray-300"
             >
               メールアドレス
             </label>
@@ -92,7 +92,7 @@ const Login = () => {
           <div className="space-y-2">
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              className="block text-sm font-medium text-white dark:text-gray-300"
             >
               パスワード
             </label>
@@ -174,7 +174,7 @@ const Login = () => {
           <div>
             <Link
               to="/password/reset"
-              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+              className="text-sm text-white/90 dark:text-blue-400 hover:text-white dark:hover:text-blue-300 transition-colors"
             >
               パスワードをお忘れの方はこちら
             </Link>
@@ -182,7 +182,7 @@ const Login = () => {
           <div>
             <Link
               to="/"
-              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+              className="text-sm text-white/70 dark:text-gray-400 hover:text-white dark:hover:text-gray-200 transition-colors"
             >
               ← ホームに戻る
             </Link>
