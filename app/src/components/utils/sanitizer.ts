@@ -101,10 +101,9 @@ export const sanitizeHtml = (html: string): string => {
     // 全角句読点・日本語文字（ひらがな・カタカナ・漢字）を除外して
     // URL直後の助詞等（「を参照」「のページ」）が href に取り込まれるのを防ぐ
     // ' はパスに含まれる合法な文字（例: People's_Republic）なので除外しない
-    // 代わりに TRAILING_PUNCT で末尾の ' を除去することで引用符との混在を吸収
     const URL_RE = /https?:\/\/[^\s<>"()\[\]。、！？「」『』【】（）぀-ゟ゠-ヿ一-鿿]+/gi;
-    // . , ' のみ削除（! ? : ; は URL のパス・クエリに合法なため残す）
-    const TRAILING_PUNCT = /[.,。、']+$/;
+    // . , のみ無条件削除。' は URL が引用符で囲まれている場合のみ後処理で除去
+    const TRAILING_PUNCT = /[.,。、]+$/;
     const SKIP_TAGS = new Set(["A", "PRE", "CODE"]);
 
     const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
@@ -131,7 +130,11 @@ export const sanitizeHtml = (html: string): string => {
       let last = 0;
       let m: RegExpExecArray | null;
       while ((m = URL_RE.exec(text)) !== null) {
-        const raw = m[0].replace(TRAILING_PUNCT, "");
+        let raw = m[0].replace(TRAILING_PUNCT, "");
+        // URL が単一引用符で囲まれている場合のみ末尾の ' を除去
+        if (raw.endsWith("'") && m.index > 0 && text[m.index - 1] === "'") {
+          raw = raw.slice(0, -1);
+        }
         if (m.index > last) frag.appendChild(doc.createTextNode(text.slice(last, m.index)));
         const a = doc.createElement("a");
         a.href = raw;
