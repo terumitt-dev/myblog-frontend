@@ -204,6 +204,17 @@ describe("sanitizeHtml", () => {
       expect(result).toContain('href="https://example.com/?q=foo?"');
     });
 
+    it("URL パス内のアポストロフィはリンクに含める", () => {
+      const result = sanitizeHtml("<p>https://en.wikipedia.org/wiki/People's_Republic_of_China を参照</p>");
+      expect(result).toContain("href=\"https://en.wikipedia.org/wiki/People's_Republic_of_China\"");
+    });
+
+    it("末尾の単独アポストロフィは URL に含めない", () => {
+      const result = sanitizeHtml("<p>'https://example.com' を参照</p>");
+      expect(result).toContain('href="https://example.com"');
+      expect(result).not.toContain("href=\"https://example.com'\"");
+    });
+
     it("URL直後に空白なしで助詞が続いても日本語がhrefに取り込まれない", () => {
       const result = sanitizeHtml("<p>https://example.comを参照してください</p>");
       expect(result).toContain('href="https://example.com"');

@@ -100,10 +100,11 @@ export const sanitizeHtml = (html: string): string => {
     // 全角句読点（。、！？」』】）も除外して日本語文末の取り込みを防ぐ
     // 全角句読点・日本語文字（ひらがな・カタカナ・漢字）を除外して
     // URL直後の助詞等（「を参照」「のページ」）が href に取り込まれるのを防ぐ
-    const URL_RE = /https?:\/\/[^\s<>"'()\[\]。、！？「」『』【】（）぀-ゟ゠-ヿ一-鿿]+/gi;
-    // . と , のみ削除（! ? : ; は URL のパス・クエリに合法なため残す）
-    // 全角の。、は URL_RE の除外文字クラスで既にマッチ対象外だが念のため含める
-    const TRAILING_PUNCT = /[.,。、]+$/;
+    // ' はパスに含まれる合法な文字（例: People's_Republic）なので除外しない
+    // 代わりに TRAILING_PUNCT で末尾の ' を除去することで引用符との混在を吸収
+    const URL_RE = /https?:\/\/[^\s<>"()\[\]。、！？「」『』【】（）぀-ゟ゠-ヿ一-鿿]+/gi;
+    // . , ' のみ削除（! ? : ; は URL のパス・クエリに合法なため残す）
+    const TRAILING_PUNCT = /[.,。、']+$/;
     const SKIP_TAGS = new Set(["A", "PRE", "CODE"]);
 
     const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, {
