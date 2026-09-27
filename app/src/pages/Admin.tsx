@@ -72,6 +72,12 @@ const Admin = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeletingId, setIsDeletingId] = useState<number | null>(null);
+  // 複数記事へ同時にツイートリクエストを送っても互いの送信中状態・結果を
+  // 上書きしないよう、単一の値ではなく記事IDをキーにしたMapで個別に追跡する
+  const [tweetingIds, setTweetingIds] = useState<Set<number>>(new Set());
+  const [tweetResults, setTweetResults] = useState<
+    Map<number, { type: "success" | "error"; message: string }>
+  >(new Map());
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<{
     type: "success" | "error";
@@ -278,6 +284,46 @@ const Admin = () => {
       setError("投稿の削除に失敗しました");
     } finally {
       setIsDeletingId(null);
+    }
+  };
+
+  // 手動ツイート（自動投稿が失敗した場合のリトライ用）
+  const handleTweet = async (id: number) => {
+    if (!window.confirm("この記事をツイートしてもよろしいですか？")) {
+      return;
+    }
+
+    setTweetingIds((prev) => new Set(prev).add(id));
+    setTweetResults((prev) => {
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
+
+    try {
+      const response = await blogsApi.tweet(id);
+
+      if (!response.ok) {
+        throw new Error(response.error || "ツイートの投稿に失敗しました");
+      }
+
+      setTweetResults((prev) =>
+        new Map(prev).set(id, { type: "success", message: "ツイートを投稿しました" }),
+      );
+    } catch (error) {
+      console.error("❌ Admin: ツイート投稿エラー:", error);
+      setTweetResults((prev) =>
+        new Map(prev).set(id, {
+          type: "error",
+          message: error instanceof Error ? error.message : "ツイートの投稿に失敗しました",
+        }),
+      );
+    } finally {
+      setTweetingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   };
 
@@ -621,7 +667,7 @@ const Admin = () => {
                     </div>
 
                     {/* アクションボタン */}
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Link
                         to={`/posts/${post.id}`}
                         className="px-3 py-1.5 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition-colors"
@@ -636,6 +682,13 @@ const Admin = () => {
                         編集
                       </button>
                       <button
+                        onClick={() => handleTweet(post.id)}
+                        disabled={tweetingIds.has(post.id)}
+                        className="px-3 py-1.5 text-xs bg-sky-100 text-sky-800 rounded hover:bg-sky-200 transition-colors disabled:opacity-50"
+                      >
+                        {tweetingIds.has(post.id) ? "投稿中..." : "ツイート"}
+                      </button>
+                      <button
                         onClick={() => handleDelete(post.id)}
                         disabled={isDeletingId === post.id}
                         className="px-3 py-1.5 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors disabled:opacity-50"
@@ -643,6 +696,19 @@ const Admin = () => {
                         {isDeletingId === post.id ? "削除中..." : "削除"}
                       </button>
                     </div>
+
+                    {tweetResults.has(post.id) && (
+                      <p
+                        className={cn(
+                          "mt-2 text-xs",
+                          tweetResults.get(post.id)!.type === "success"
+                            ? "text-green-700 dark:text-green-400"
+                            : "text-red-700 dark:text-red-400",
+                        )}
+                      >
+                        {tweetResults.get(post.id)!.message}
+                      </p>
+                    )}
                   </div>
                 </article>
               ))}

@@ -634,6 +634,11 @@ export const useAuthenticatedApi = () => {
           method: "DELETE",
         }),
 
+      tweet: (id: number) =>
+        apiCall<{ tweet_id: string }>(`/admin/blogs/${id}/tweet`, {
+          method: "POST",
+        }),
+
       importMt: (file: File) => {
         const formData = new FormData();
         formData.append("file", file);
