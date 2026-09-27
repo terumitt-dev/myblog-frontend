@@ -72,7 +72,9 @@ const Admin = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeletingId, setIsDeletingId] = useState<number | null>(null);
-  const [isTweetingId, setIsTweetingId] = useState<number | null>(null);
+  // 複数記事へ同時にツイートリクエストを送っても互いの送信中状態を
+  // 上書きしないよう、単一のIDではなく Set で個別に追跡する
+  const [tweetingIds, setTweetingIds] = useState<Set<number>>(new Set());
   const [tweetResult, setTweetResult] = useState<{
     type: "success" | "error";
     message: string;
@@ -292,7 +294,7 @@ const Admin = () => {
       return;
     }
 
-    setIsTweetingId(id);
+    setTweetingIds((prev) => new Set(prev).add(id));
     setTweetResult(null);
 
     try {
@@ -310,7 +312,11 @@ const Admin = () => {
         message: error instanceof Error ? error.message : "ツイートの投稿に失敗しました",
       });
     } finally {
-      setIsTweetingId(null);
+      setTweetingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   };
 
@@ -683,10 +689,10 @@ const Admin = () => {
                       </button>
                       <button
                         onClick={() => handleTweet(post.id)}
-                        disabled={isTweetingId === post.id}
+                        disabled={tweetingIds.has(post.id)}
                         className="px-3 py-1.5 text-xs bg-sky-100 text-sky-800 rounded hover:bg-sky-200 transition-colors disabled:opacity-50"
                       >
-                        {isTweetingId === post.id ? "投稿中..." : "ツイート"}
+                        {tweetingIds.has(post.id) ? "投稿中..." : "ツイート"}
                       </button>
                       <button
                         onClick={() => handleDelete(post.id)}

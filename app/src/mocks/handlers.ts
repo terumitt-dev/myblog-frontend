@@ -440,6 +440,26 @@ export const handlers = [
     );
   }),
 
+  // 管理者用ツイート手動投稿（自動投稿失敗時のリトライ用）
+  http.post(`${API_BASE}/admin/blogs/:id/tweet`, async ({ request, params }) => {
+    const authError = requireAuth(request);
+    if (authError) return authError;
+
+    const id = parseInt(params.id as string, 10);
+    const blog = blogs.find((blog: Blog) => blog.id === id);
+    if (!blog) {
+      return HttpResponse.json(
+        { error: "Blog not found" },
+        { status: 404 },
+      );
+    }
+
+    return HttpResponse.json(
+      { tweet_id: `mock-tweet-${id}` },
+      { status: 200 },
+    );
+  }),
+
   // ========== 後方互換性 ==========
 
   // 古い /articles エンドポイント（共通ロジック使用）
