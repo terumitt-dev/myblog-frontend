@@ -288,6 +288,10 @@ const Admin = () => {
 
   // 手動ツイート（自動投稿が失敗した場合のリトライ用）
   const handleTweet = async (id: number) => {
+    if (!window.confirm("この記事をツイートしてもよろしいですか？")) {
+      return;
+    }
+
     setIsTweetingId(id);
     setTweetResult(null);
 
