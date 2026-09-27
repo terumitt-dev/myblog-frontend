@@ -72,6 +72,11 @@ const Admin = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeletingId, setIsDeletingId] = useState<number | null>(null);
+  const [isTweetingId, setIsTweetingId] = useState<number | null>(null);
+  const [tweetResult, setTweetResult] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<{
     type: "success" | "error";
@@ -278,6 +283,30 @@ const Admin = () => {
       setError("投稿の削除に失敗しました");
     } finally {
       setIsDeletingId(null);
+    }
+  };
+
+  // 手動ツイート（自動投稿が失敗した場合のリトライ用）
+  const handleTweet = async (id: number) => {
+    setIsTweetingId(id);
+    setTweetResult(null);
+
+    try {
+      const response = await blogsApi.tweet(id);
+
+      if (!response.ok) {
+        throw new Error(response.error || "ツイートの投稿に失敗しました");
+      }
+
+      setTweetResult({ type: "success", message: "ツイートを投稿しました" });
+    } catch (error) {
+      console.error("❌ Admin: ツイート投稿エラー:", error);
+      setTweetResult({
+        type: "error",
+        message: error instanceof Error ? error.message : "ツイートの投稿に失敗しました",
+      });
+    } finally {
+      setIsTweetingId(null);
     }
   };
 
@@ -578,6 +607,19 @@ const Admin = () => {
             投稿一覧 ({posts.length}件)
           </h2>
 
+          {tweetResult && (
+            <div
+              className={cn(
+                "mb-4 p-4 rounded-md",
+                tweetResult.type === "success"
+                  ? "bg-green-50 border border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
+                  : "bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400",
+              )}
+            >
+              <p>{tweetResult.message}</p>
+            </div>
+          )}
+
           {posts.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 dark:text-gray-400">
@@ -621,7 +663,7 @@ const Admin = () => {
                     </div>
 
                     {/* アクションボタン */}
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Link
                         to={`/posts/${post.id}`}
                         className="px-3 py-1.5 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition-colors"
@@ -634,6 +676,13 @@ const Admin = () => {
                         className="px-3 py-1.5 text-xs bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 transition-colors disabled:opacity-50"
                       >
                         編集
+                      </button>
+                      <button
+                        onClick={() => handleTweet(post.id)}
+                        disabled={isTweetingId === post.id}
+                        className="px-3 py-1.5 text-xs bg-sky-100 text-sky-800 rounded hover:bg-sky-200 transition-colors disabled:opacity-50"
+                      >
+                        {isTweetingId === post.id ? "投稿中..." : "ツイート"}
                       </button>
                       <button
                         onClick={() => handleDelete(post.id)}
