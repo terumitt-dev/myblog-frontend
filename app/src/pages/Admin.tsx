@@ -72,13 +72,12 @@ const Admin = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeletingId, setIsDeletingId] = useState<number | null>(null);
-  // 複数記事へ同時にツイートリクエストを送っても互いの送信中状態を
-  // 上書きしないよう、単一のIDではなく Set で個別に追跡する
+  // 複数記事へ同時にツイートリクエストを送っても互いの送信中状態・結果を
+  // 上書きしないよう、単一の値ではなく記事IDをキーにしたMapで個別に追跡する
   const [tweetingIds, setTweetingIds] = useState<Set<number>>(new Set());
-  const [tweetResult, setTweetResult] = useState<{
-    type: "success" | "error";
-    message: string;
-  } | null>(null);
+  const [tweetResults, setTweetResults] = useState<
+    Map<number, { type: "success" | "error"; message: string }>
+  >(new Map());
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<{
     type: "success" | "error";
@@ -295,7 +294,11 @@ const Admin = () => {
     }
 
     setTweetingIds((prev) => new Set(prev).add(id));
-    setTweetResult(null);
+    setTweetResults((prev) => {
+      const next = new Map(prev);
+      next.delete(id);
+      return next;
+    });
 
     try {
       const response = await blogsApi.tweet(id);
@@ -304,13 +307,17 @@ const Admin = () => {
         throw new Error(response.error || "ツイートの投稿に失敗しました");
       }
 
-      setTweetResult({ type: "success", message: "ツイートを投稿しました" });
+      setTweetResults((prev) =>
+        new Map(prev).set(id, { type: "success", message: "ツイートを投稿しました" }),
+      );
     } catch (error) {
       console.error("❌ Admin: ツイート投稿エラー:", error);
-      setTweetResult({
-        type: "error",
-        message: error instanceof Error ? error.message : "ツイートの投稿に失敗しました",
-      });
+      setTweetResults((prev) =>
+        new Map(prev).set(id, {
+          type: "error",
+          message: error instanceof Error ? error.message : "ツイートの投稿に失敗しました",
+        }),
+      );
     } finally {
       setTweetingIds((prev) => {
         const next = new Set(prev);
@@ -617,19 +624,6 @@ const Admin = () => {
             投稿一覧 ({posts.length}件)
           </h2>
 
-          {tweetResult && (
-            <div
-              className={cn(
-                "mb-4 p-4 rounded-md",
-                tweetResult.type === "success"
-                  ? "bg-green-50 border border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400"
-                  : "bg-red-50 border border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400",
-              )}
-            >
-              <p>{tweetResult.message}</p>
-            </div>
-          )}
-
           {posts.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 dark:text-gray-400">
@@ -702,6 +696,19 @@ const Admin = () => {
                         {isDeletingId === post.id ? "削除中..." : "削除"}
                       </button>
                     </div>
+
+                    {tweetResults.has(post.id) && (
+                      <p
+                        className={cn(
+                          "mt-2 text-xs",
+                          tweetResults.get(post.id)!.type === "success"
+                            ? "text-green-700 dark:text-green-400"
+                            : "text-red-700 dark:text-red-400",
+                        )}
+                      >
+                        {tweetResults.get(post.id)!.message}
+                      </p>
+                    )}
                   </div>
                 </article>
               ))}
