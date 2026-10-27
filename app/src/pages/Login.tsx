@@ -80,7 +80,7 @@ const Login = () => {
                 "bg-white dark:bg-gray-700",
                 "text-gray-900 dark:text-white",
                 "placeholder-gray-500 dark:placeholder-gray-400",
-                "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                "focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
                 "transition duration-200",
               )}
@@ -109,7 +109,7 @@ const Login = () => {
                 "bg-white dark:bg-gray-700",
                 "text-gray-900 dark:text-white",
                 "placeholder-gray-500 dark:placeholder-gray-400",
-                "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                "focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
                 "transition duration-200",
               )}
@@ -124,7 +124,7 @@ const Login = () => {
               role="alert"
             >
               <div className="flex">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <svg
                     className="h-5 w-5 text-red-400"
                     viewBox="0 0 20 20"
@@ -150,10 +150,10 @@ const Login = () => {
             type="submit"
             disabled={loading || !email.trim() || !password.trim()}
             className={cn(
-              "w-full py-3 px-4 border border-transparent rounded-lg shadow-sm",
+              "w-full py-3 px-4 border border-transparent rounded-lg shadow-xs",
               "text-sm font-medium text-white",
               "bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600",
-              "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
+              "focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
               "disabled:opacity-50 disabled:cursor-not-allowed",
               "transition duration-200 ease-in-out",
               loading && "cursor-wait",

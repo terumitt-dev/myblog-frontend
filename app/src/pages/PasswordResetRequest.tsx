@@ -121,7 +121,7 @@ const PasswordResetRequest = () => {
                 "border-gray-300 dark:border-gray-600",
                 "bg-white dark:bg-gray-700",
                 "text-gray-900 dark:text-white",
-                "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                "focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
                 "transition duration-200",
               )}
@@ -143,10 +143,10 @@ const PasswordResetRequest = () => {
             type="submit"
             disabled={loading || !secret.trim()}
             className={cn(
-              "w-full py-3 px-4 border border-transparent rounded-lg shadow-sm",
+              "w-full py-3 px-4 border border-transparent rounded-lg shadow-xs",
               "text-sm font-medium text-white",
               "bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600",
-              "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
+              "focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500",
               "disabled:opacity-50 disabled:cursor-not-allowed",
               "transition duration-200 ease-in-out",
             )}

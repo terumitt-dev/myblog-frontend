@@ -27,7 +27,7 @@ const CommentList = ({ comments }: Props) => {
           <button
             onClick={toggleComments}
             className={cn(
-              "flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors",
+              "flex items-center gap-1 px-2 py-1 rounded-sm text-xs font-medium transition-colors",
               "bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600",
               "text-gray-700 dark:text-gray-300",
             )}

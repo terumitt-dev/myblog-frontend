@@ -454,7 +454,7 @@ const Admin = () => {
           <label
             className={cn(
               "inline-flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-colors cursor-pointer",
-              "focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500",
+              "focus-within:outline-hidden focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500",
               isImporting && "pointer-events-none",
               isImporting
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -521,7 +521,7 @@ const Admin = () => {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 placeholder="投稿のタイトルを入力してください"
                 maxLength={TEXT_LIMITS.TITLE_MAX_LENGTH}
                 required
@@ -544,7 +544,7 @@ const Admin = () => {
                 id="category-select"
                 value={category}
                 onChange={(e) => setCategory(e.target.value as CategoryKey)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-xs focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 required
                 disabled={isSaving}
               >
@@ -583,7 +583,7 @@ const Admin = () => {
                 disabled={isSaving || !title.trim() || (!stripHtmlTags(content) && !/<img\b[^>]*>/i.test(content))}
                 className={cn(
                   "px-6 py-3 rounded-md font-medium transition-colors",
-                  "focus:outline-none focus:ring-2 focus:ring-offset-2",
+                  "focus:outline-hidden focus:ring-2 focus:ring-offset-2",
                   isSaving || !title.trim() || (!stripHtmlTags(content) && !/<img\b[^>]*>/i.test(content))
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
@@ -606,7 +606,7 @@ const Admin = () => {
                   type="button"
                   onClick={resetForm}
                   disabled={isSaving}
-                  className="px-6 py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 transition-colors"
+                  className="px-6 py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 transition-colors"
                 >
                   キャンセル
                 </button>
@@ -670,28 +670,28 @@ const Admin = () => {
                     <div className="flex flex-wrap gap-2">
                       <Link
                         to={`/posts/${post.id}`}
-                        className="px-3 py-1.5 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition-colors"
+                        className="px-3 py-1.5 text-xs bg-blue-100 text-blue-800 rounded-sm hover:bg-blue-200 transition-colors"
                       >
                         表示
                       </Link>
                       <button
                         onClick={() => startEditing(post)}
                         disabled={isSaving}
-                        className="px-3 py-1.5 text-xs bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 transition-colors disabled:opacity-50"
+                        className="px-3 py-1.5 text-xs bg-yellow-100 text-yellow-800 rounded-sm hover:bg-yellow-200 transition-colors disabled:opacity-50"
                       >
                         編集
                       </button>
                       <button
                         onClick={() => handleTweet(post.id)}
                         disabled={tweetingIds.has(post.id)}
-                        className="px-3 py-1.5 text-xs bg-sky-100 text-sky-800 rounded hover:bg-sky-200 transition-colors disabled:opacity-50"
+                        className="px-3 py-1.5 text-xs bg-sky-100 text-sky-800 rounded-sm hover:bg-sky-200 transition-colors disabled:opacity-50"
                       >
                         {tweetingIds.has(post.id) ? "投稿中..." : "ツイート"}
                       </button>
                       <button
                         onClick={() => handleDelete(post.id)}
                         disabled={isDeletingId === post.id}
-                        className="px-3 py-1.5 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200 transition-colors disabled:opacity-50"
+                        className="px-3 py-1.5 text-xs bg-red-100 text-red-800 rounded-sm hover:bg-red-200 transition-colors disabled:opacity-50"
                       >
                         {isDeletingId === post.id ? "削除中..." : "削除"}
                       </button>

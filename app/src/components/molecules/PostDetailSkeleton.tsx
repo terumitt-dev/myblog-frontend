@@ -20,7 +20,7 @@ const PostDetailSkeleton = ({ className }: Props) => {
       {/* 記事エリアのスケルトン */}
       <article
         className={cn(
-          "w-full bg-white dark:bg-gray-700 rounded-xl shadow p-6 space-y-6",
+          "w-full bg-white dark:bg-gray-700 rounded-xl shadow-sm p-6 space-y-6",
         )}
         aria-label="記事内容を読み込み中"
       >
@@ -41,7 +41,7 @@ const PostDetailSkeleton = ({ className }: Props) => {
               variant="rectangular"
               height="2rem"
               width="8rem"
-              className="rounded mx-auto"
+              className="rounded-sm mx-auto"
             />
           </div>
         </header>

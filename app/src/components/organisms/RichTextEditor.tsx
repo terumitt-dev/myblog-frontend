@@ -57,7 +57,7 @@ const RichTextEditor = ({
     },
     editorProps: {
       attributes: {
-        class: "prose prose-lg max-w-none dark:prose-invert min-h-[300px] focus:outline-none p-4",
+        class: "prose prose-lg max-w-none dark:prose-invert min-h-[300px] focus:outline-hidden p-4",
       },
       handleDrop: (_view, event, _slice, moved) => {
         if (moved || !event.dataTransfer?.files?.length) return false;
@@ -306,13 +306,13 @@ const RichTextEditor = ({
               }
             }}
             placeholder="https://example.com"
-            className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-500 rounded bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-500 rounded-sm bg-white dark:bg-gray-700 dark:text-white focus:outline-hidden focus:ring-1 focus:ring-blue-500"
           />
           <button
             type="button"
             onClick={confirmLink}
             disabled={!linkUrl.trim()}
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-3 py-1 text-sm bg-blue-600 text-white rounded-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             確定
           </button>
@@ -374,8 +374,8 @@ const ToolbarButton = ({
     disabled={disabled}
     title={title}
     className={cn(
-      "px-2 py-1 text-sm rounded transition-colors",
-      "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
+      "px-2 py-1 text-sm rounded-sm transition-colors",
+      "focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-1",
       isActive
         ? "bg-blue-600 text-white"
         : "bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-500",

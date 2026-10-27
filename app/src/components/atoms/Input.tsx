@@ -33,7 +33,7 @@ const Input = ({
     <input
       id={id}
       className={cn(
-        "border border-gray-300 dark:border-gray-600 rounded px-2 py-1 w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors",
+        "border border-gray-300 dark:border-gray-600 rounded-sm px-2 py-1 w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors",
         disabled &&
           "opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800",
       )}
