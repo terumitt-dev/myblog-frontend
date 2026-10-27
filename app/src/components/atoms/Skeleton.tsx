@@ -19,8 +19,8 @@ const Skeleton = ({
   const baseClasses = "bg-gray-200 dark:bg-gray-700 animate-pulse";
 
   const variantClasses = {
-    text: "rounded h-4",
-    rectangular: "rounded",
+    text: "rounded-sm h-4",
+    rectangular: "rounded-sm",
     circular: "rounded-full",
   };
 

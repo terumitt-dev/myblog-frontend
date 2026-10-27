@@ -20,7 +20,7 @@ const ErrorFallback = ({ error, resetErrorBoundary }: ErrorFallbackProps) => {
           <summary className="cursor-pointer text-gray-700 dark:text-gray-300 font-semibold">
             エラー詳細を表示
           </summary>
-          <pre className="mt-2 p-4 bg-gray-100 dark:bg-gray-700 rounded text-xs overflow-auto text-gray-800 dark:text-gray-200">
+          <pre className="mt-2 p-4 bg-gray-100 dark:bg-gray-700 rounded-sm text-xs overflow-auto text-gray-800 dark:text-gray-200">
             <strong>Error:</strong> {error.message}
             {error.stack && (
               <>
@@ -36,14 +36,14 @@ const ErrorFallback = ({ error, resetErrorBoundary }: ErrorFallbackProps) => {
         <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-blue-600 text-white rounded-sm hover:bg-blue-700 transition-colors"
           >
             ページを再読み込み
           </button>
 
           <button
             onClick={resetErrorBoundary}
-            className="ml-2 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+            className="ml-2 px-4 py-2 bg-gray-600 text-white rounded-sm hover:bg-gray-700 transition-colors"
           >
             再試行
           </button>

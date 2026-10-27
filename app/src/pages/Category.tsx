@@ -438,7 +438,7 @@ const Category = () => {
                     </time>
                   </div>
 
-                  <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold break-words mb-2 text-gray-900 dark:text-white">
+                  <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold wrap-break-word mb-2 text-gray-900 dark:text-white">
                     {post.title}
                   </h2>
 

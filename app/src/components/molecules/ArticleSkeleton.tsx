@@ -18,7 +18,7 @@ const ArticleSkeleton = ({ count = 3, className }: Props) => {
       {Array.from({ length: count }).map((_, index) => (
         <div
           key={index}
-          className="bg-white dark:bg-gray-700 rounded-xl shadow p-4 space-y-3"
+          className="bg-white dark:bg-gray-700 rounded-xl shadow-sm p-4 space-y-3"
           role="presentation"
         >
           <Skeleton variant="text" height="1.5rem" />

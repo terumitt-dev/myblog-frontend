@@ -36,8 +36,8 @@ const Button = ({
       onClick={onClick}
       disabled={isDisabled}
       className={cn(
-        "block w-auto px-4 py-2 rounded text-white transition-colors relative",
-        "outline-offset-2 focus:outline-none",
+        "block w-auto px-4 py-2 rounded-sm text-white transition-colors relative",
+        "outline-offset-2 focus:outline-hidden",
         "focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900",
         "focus-visible:outline-2 focus-visible:outline-blue-500",
         isDisabled && "opacity-60 cursor-not-allowed",

@@ -68,7 +68,7 @@ export type CategoryType = keyof typeof CATEGORY_COLORS;
 
 // 「続きを読む」ボタン専用スタイル
 export const READ_MORE_BUTTON = {
-  base: "inline-flex items-center px-3 py-2 rounded-lg font-medium transition-colors duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none",
+  base: "inline-flex items-center px-3 py-2 rounded-lg font-medium transition-colors duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-hidden",
   colors: "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500",
   // サイズバリエーション
   sizes: {
@@ -162,11 +162,11 @@ export const getSemanticColor = (
 export const LAYOUT_COLORS = {
   // Layout.tsxの現在のクラス名をそのまま定数化
   mainBackground:
-    "min-h-screen bg-gradient-to-b from-layout-gradient-from-light to-layout-gradient-to-light dark:from-layout-gradient-from-dark dark:to-layout-gradient-to-dark text-layout-text-light dark:text-layout-text-dark",
+    "min-h-screen bg-linear-to-b from-layout-gradient-from-light to-layout-gradient-to-light dark:from-layout-gradient-from-dark dark:to-layout-gradient-to-dark text-layout-text-light dark:text-layout-text-dark",
 
   // 分割版（将来的に細かく使いたい場合）
   gradient: {
-    full: "bg-gradient-to-b from-layout-gradient-from-light to-layout-gradient-to-light dark:from-layout-gradient-from-dark dark:to-layout-gradient-to-dark",
+    full: "bg-linear-to-b from-layout-gradient-from-light to-layout-gradient-to-light dark:from-layout-gradient-from-dark dark:to-layout-gradient-to-dark",
     light: "from-layout-gradient-from-light to-layout-gradient-to-light",
     dark: "dark:from-layout-gradient-from-dark dark:to-layout-gradient-to-dark",
   },
