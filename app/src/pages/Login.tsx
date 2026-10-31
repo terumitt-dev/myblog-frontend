@@ -1,10 +1,11 @@
 // app/src/pages/Login.tsx
 import Layout from "@/components/layouts/Layout";
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import { cn } from "@/components/utils/cn";
+import { resolveAdminReturnPath } from "@/components/utils/xConnect";
 
 const Login = () => {
   const { login } = useAuth();
@@ -13,6 +14,7 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +29,8 @@ const Login = () => {
 
     try {
       await login(email, password);
-      navigate("/admin");
+      // 連携の結果 (?x_connect=...) 付きで /admin に戻された場合は、結果を表示できるよう同じ場所に戻す。
+      navigate(resolveAdminReturnPath((location.state as { from?: unknown } | null)?.from));
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "ログインに失敗しました。";

@@ -460,6 +460,20 @@ export const handlers = [
     );
   }),
 
+  // X連携の開始 (管理者のみ)。実際の X には遷移しない開発用モック。
+  http.post(`${API_BASE}/admin/x/connect`, async ({ request }) => {
+    const authError = requireAuth(request);
+    if (authError) return authError;
+
+    return HttpResponse.json(
+      {
+        authorize_url:
+          "https://twitter.com/i/oauth2/authorize?response_type=code&state=mock-state",
+      },
+      { status: 200 },
+    );
+  }),
+
   // ========== 後方互換性 ==========
 
   // 古い /articles エンドポイント（共通ロジック使用）

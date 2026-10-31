@@ -658,6 +658,15 @@ export const useAuthenticatedApi = () => {
       },
     },
 
+    // X (Twitter) 連携API (管理者のみ)
+    xApi: {
+      // 連携を開始し、X の認可画面に遷移するための URL を受け取る
+      connect: () =>
+        apiCall<{ authorize_url: string }>("/admin/x/connect", {
+          method: "POST",
+        }),
+    },
+
     // 認証API
     authApi: {
       signUp: (email: string, password: string, passwordConfirmation: string, signupPassword: string) =>

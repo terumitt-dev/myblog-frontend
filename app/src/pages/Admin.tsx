@@ -17,6 +17,7 @@ import { CATEGORY_COLORS } from "@/components/utils/colors";
 import { useAuthenticatedApi } from "@/api/client";
 import type { BlogWithCategoryName, CategoryKey } from "@/types";
 import RichTextEditor from "@/components/organisms/RichTextEditor";
+import XConnectSection from "@/components/organisms/XConnectSection";
 
 // ========== localStorage削除：型定義の更新 ==========
 type BlogPost = {
@@ -442,6 +443,9 @@ const Admin = () => {
             <LogoutButton />
           </div>
         </header>
+
+        {/* X (Twitter) 連携 */}
+        <XConnectSection />
 
         {/* MTインポート */}
         <section className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
