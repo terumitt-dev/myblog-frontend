@@ -5,6 +5,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuthenticatedApi } from "@/api/client";
 import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import { cn } from "@/components/utils/cn";
+import { PASSWORD_MIN_LENGTH } from "@/constants/appConfig";
 
 const SignUp = () => {
   const api = useAuthenticatedApi();
@@ -30,8 +31,8 @@ const SignUp = () => {
       return;
     }
 
-    if (password.length < 6) {
-      setError("パスワードは6文字以上である必要があります。");
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      setError(`パスワードは${PASSWORD_MIN_LENGTH}文字以上である必要があります。`);
       return;
     }
 

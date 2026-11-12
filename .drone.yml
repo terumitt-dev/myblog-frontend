@@ -17,8 +17,12 @@ tolerations:
     effect: NoSchedule
 
 steps:
+  # シークレットを参照するステップは、実際に使う main への push のときだけ動かす。
   - name: check-vars
     image: alpine
+    when:
+      branch: [main]
+      event: [push]
     environment:
       AWS_REGION:
         from_secret: AWS_REGION
@@ -79,10 +83,13 @@ steps:
             --destination="$ECR_REGISTRY/go-lilaregard-frontend:$DRONE_COMMIT_SHA" \
             --destination="$ECR_REGISTRY/go-lilaregard-frontend:latest"
         else
+          # push しない確認用ビルド。Site Key が渡らない場合 (pull_request など) は
+          # Cloudflare 公開のテスト用 Site Key (always pass) でビルドだけ通す。
+          # https://developers.cloudflare.com/turnstile/troubleshooting/testing/
           /kaniko/executor \
             --context=dir:///drone/src/app \
             --dockerfile=/drone/src/app/Dockerfile.prod \
             --build-arg VITE_API_BASE_URL=/api \
-            --build-arg "VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY" \
+            --build-arg "VITE_TURNSTILE_SITE_KEY=${VITE_TURNSTILE_SITE_KEY:-1x00000000000000000000AA}" \
             --no-push
         fi

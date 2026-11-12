@@ -7,6 +7,7 @@ import { useSearchParams, useLocation, Link } from "react-router-dom";
 import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import { cn } from "@/components/utils/cn";
 import { API_BASE } from "@/api/base";
+import { PASSWORD_MIN_LENGTH } from "@/constants/appConfig";
 
 const TOKEN_STORAGE_KEY = "reset_password_token";
 
@@ -109,15 +110,15 @@ const PasswordResetConfirm = () => {
 
     // 検証は実際に送信する password そのものに対して行う。
     // 以前は trim().length で検証してたが、送信値は trim 前の生の password なので
-    // 検証基準と送信値がズレていた（例: "      hello1" は trim 後 6文字で通って
-    // 12文字のまま送られる）。
+    // 検証基準と送信値がズレていた（前後に空白を付けた入力が、trim 後の長さで
+    // 判定されたうえで空白付きのまま送られる）。
     // 空白のみの入力は別条件で弾く。
     if (password.trim().length === 0) {
       setError("パスワードを入力してください。");
       return;
     }
-    if (password.length < 6) {
-      setError("パスワードは6文字以上で入力してください。");
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      setError(`パスワードは${PASSWORD_MIN_LENGTH}文字以上で入力してください。`);
       return;
     }
 
@@ -292,7 +293,7 @@ const PasswordResetConfirm = () => {
               id="password"
               type="password"
               required
-              minLength={6}
+              minLength={PASSWORD_MIN_LENGTH}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
@@ -305,7 +306,7 @@ const PasswordResetConfirm = () => {
                 "disabled:opacity-50",
                 "transition duration-200",
               )}
-              placeholder="6文字以上"
+              placeholder={`${PASSWORD_MIN_LENGTH}文字以上`}
               autoComplete="new-password"
             />
           </div>
@@ -321,7 +322,7 @@ const PasswordResetConfirm = () => {
               id="password_confirmation"
               type="password"
               required
-              minLength={6}
+              minLength={PASSWORD_MIN_LENGTH}
               value={passwordConfirmation}
               onChange={(e) => setPasswordConfirmation(e.target.value)}
               disabled={loading}

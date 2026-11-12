@@ -12,6 +12,9 @@ export const TEXT_LIMITS = {
   PREVIEW_LENGTH: 100,
 } as const;
 
+// 管理者パスワードの最小文字数 (backend の Devise 設定 password_length と揃える)
+export const PASSWORD_MIN_LENGTH = 12;
+
 // エフェクト要素サイズ
 export const EFFECT_SIZES = {
   SNAIL_SIZE: 60,
